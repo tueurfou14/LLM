@@ -7,15 +7,17 @@ OpenAI-compatible ; la mémoire et les outils sont indépendants de lui.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 import json
 import os
 import sys
+import time
 from collections.abc import Callable
 from pathlib import Path
 
 from . import skills as skills_mod
 from .config import HOME, Config
-from .llm import Client, Reply
+from .llm import Client, Reply, ToolCall
 from .memory import MemoryStore
 from .tools import Registry, default_registry
 
@@ -37,7 +39,23 @@ Méthode :
 Souvenirs pertinents sur ce projet :
 {memories}
 """
-MAX_TOOL_ROUNDS = 12
+MAX_TOOL_ROUNDS = 60   # tours modèle+outils par réponse ; surchargé par config.max_tool_rounds
+
+
+@dataclass
+class TurnStats:
+    """Ce qu'a coûté la dernière réponse, pour l'affichage en console."""
+    prompt_tokens: int = 0        # taille du contexte envoyé au dernier appel
+    completion_tokens: int = 0    # tokens générés sur tous les tours
+    rounds: int = 0
+    tool_calls: int = 0
+    elapsed: float = 0.0
+    generation_time: float = 0.0
+    estimated: bool = False       # True si le serveur n'a pas fourni usage
+
+    @property
+    def tokens_per_second(self) -> float:
+        return self.completion_tokens / self.generation_time if self.generation_time > 0 else 0.0
 
 
 class Agent:
@@ -45,7 +63,8 @@ class Agent:
                  store: MemoryStore | None = None, registry: Registry | None = None,
                  on_token: Callable[[str], None] | None = None,
                  on_tool: Callable[[str, dict, str], None] | None = None,
-                 confirm: Callable[[str, dict], bool] | None = None):
+                 confirm: Callable[[str, dict], bool] | None = None,
+                 on_tool_start: Callable[[str, dict], None] | None = None):
         self.config = config
         self.root = project_root.resolve()
         self.project = self.root.name
@@ -55,7 +74,9 @@ class Agent:
         self.on_token = on_token
         self.on_tool = on_tool
         self.confirm = confirm
+        self.on_tool_start = on_tool_start
         self.history: list[dict] = []
+        self.last_stats = TurnStats()
         self.skills = skills_mod.load_all([HOME / "skills"])
         self.debug = bool(os.environ.get("CERVEAU_DEBUG"))
 
@@ -88,10 +109,15 @@ class Agent:
         messages = [{"role": "system", "content": self._system(user_message)}, *self.history,
                     {"role": "user", "content": user_message}]
         tools = self.registry.schemas()
+        stats = TurnStats()
+        t0 = time.perf_counter()
 
         final_text = ""
-        for _ in range(MAX_TOOL_ROUNDS):
-            reply = self.client.chat(self.config.model, messages, tools=tools, temperature=self.config.temperature)
+        actions: list[str] = []
+        limit = getattr(self.config, "max_tool_rounds", MAX_TOOL_ROUNDS) or MAX_TOOL_ROUNDS
+        for _ in range(limit):
+            stats.rounds += 1
+            reply = self._round(messages, tools, stats)
             if self.debug:
                 print(f"[debug] réponse brute : {reply!r}"[:1500], file=sys.stderr)
             if not reply.tool_calls:
@@ -99,39 +125,86 @@ class Agent:
                 break
             messages.append(_assistant_message(reply))
             for call in reply.tool_calls:
+                stats.tool_calls += 1
+                actions.append(_describe_call(call))
+                if self.on_tool_start:
+                    self.on_tool_start(call.name, call.arguments)
                 result = self.registry.call(call.name, call.arguments, self.root, confirm=self.confirm)
                 if self.on_tool:
                     self.on_tool(call.name, call.arguments, result)
                 messages.append({"role": "tool", "tool_call_id": call.id or call.name, "name": call.name,
                                  "content": result})
         else:
-            final_text = reply.content or "Limite d'appels d'outils atteinte sans réponse finale."
+            # Plafond atteint : on demande un bilan sans outils plutôt que d'abandonner.
+            messages.append({"role": "user", "content": (
+                "Tu as atteint la limite d'actions pour cette réponse. Sans appeler d'outil, résume ce que tu as "
+                "fait, ce qui reste à faire, et dis à l'utilisateur d'écrire « continue » pour poursuivre.")})
+            stats.rounds += 1
+            reply = self._round(messages, [], stats)
+            final_text = reply.content or "Limite d'actions atteinte. Écrivez « continue » pour poursuivre."
 
-        if not final_text:
-            # Dernier tour en streaming pour la réponse texte, affichée au fil de l'eau.
-            final_text = self._stream_final(messages)
-        elif self.on_token:
-            self.on_token(final_text)
+        stats.elapsed = time.perf_counter() - t0
+        self.last_stats = stats
 
+        recorded = final_text
+        if actions:
+            shown = actions[:40]
+            more = f" … et {len(actions) - 40} autres" if len(actions) > 40 else ""
+            recorded += "\n\n(Actions effectuées : " + " ; ".join(shown) + more + ")"
         self.history.extend([{"role": "user", "content": user_message},
-                             {"role": "assistant", "content": final_text}])
+                             {"role": "assistant", "content": recorded}])
         self.history = self.history[-12:]
 
         if remember and final_text:
             self.store.remember(self.project, f"Question : {user_message[:300]}\nRéponse : {final_text[:600]}")
         return final_text
 
-    def _stream_final(self, messages: list[dict]) -> str:
-        parts: list[str] = []
-        for token in self.client.chat_stream(self.config.model, messages, temperature=self.config.temperature):
-            parts.append(token)
-            if self.on_token:
-                self.on_token(token)
-        return "".join(parts)
+    def _round(self, messages: list[dict], tools: list[dict], stats: TurnStats) -> Reply:
+        """Un appel au modèle, en streaming si le client le permet. Les tokens
+        de texte sont transmis à on_token au fil de l'eau."""
+        t0 = time.perf_counter()
+        chars = 0
+        if hasattr(self.client, "chat_events"):
+            reply = Reply()
+            for kind, payload in self.client.chat_events(self.config.model, messages, tools=tools,
+                                                         temperature=self.config.temperature):
+                if kind == "token":
+                    chars += len(payload)  # type: ignore[arg-type]
+                    if self.on_token:
+                        self.on_token(payload)  # type: ignore[arg-type]
+                elif kind == "done":
+                    reply = payload  # type: ignore[assignment]
+        else:
+            reply = self.client.chat(self.config.model, messages, tools=tools, temperature=self.config.temperature)
+            chars = len(reply.content)
+            if reply.content and self.on_token:
+                self.on_token(reply.content)
+        stats.generation_time += time.perf_counter() - t0
+        usage = reply.usage or {}
+        if usage.get("completion_tokens") is not None:
+            stats.completion_tokens += int(usage.get("completion_tokens") or 0)
+            stats.prompt_tokens = int(usage.get("prompt_tokens") or stats.prompt_tokens)
+        else:
+            stats.estimated = True
+            stats.completion_tokens += _estimate_tokens(reply.content) + sum(
+                _estimate_tokens(json.dumps(c.arguments)) for c in reply.tool_calls)
+            stats.prompt_tokens = sum(_estimate_tokens(str(m.get("content") or "")) for m in messages)
+        return reply
 
     def note(self, content: str, kind: str = "fact") -> int:
         """Ajoute un souvenir à la main, par exemple une convention du projet."""
         return self.store.remember(self.project, content, kind=kind)
+
+
+def _describe_call(call: ToolCall) -> str:
+    """Résumé court d'un appel, gardé dans l'historique pour qu'un « continue » sache où on en est."""
+    args = call.arguments
+    key = args.get("path") or args.get("command") or args.get("pattern") or ""
+    return f"{call.name}({str(key)[:60]})" if key else call.name
+
+
+def _estimate_tokens(text: str) -> int:
+    return max(1, len(text) // 4) if text else 0
 
 
 def _assistant_message(reply: Reply) -> dict:

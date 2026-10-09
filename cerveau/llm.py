@@ -29,6 +29,7 @@ class ToolCall:
 class Reply:
     content: str = ""
     tool_calls: list[ToolCall] = field(default_factory=list)
+    usage: dict = field(default_factory=dict)   # prompt_tokens, completion_tokens si le serveur les donne
 
 
 class Client:
@@ -80,7 +81,7 @@ class Client:
             payload["max_tokens"] = max_tokens
         with self._request("/chat/completions", payload) as resp:
             data = json.load(resp)
-        return _parse_message(data["choices"][0]["message"])
+        return _parse_message(data["choices"][0]["message"], data.get("usage"))
 
     def chat_stream(self, model: str, messages: list[dict], temperature: float = 0.2,
                     max_tokens: int | None = None) -> Iterator[str]:
@@ -104,6 +105,83 @@ class Client:
                 text = delta.get("content")
                 if text:
                     yield text
+
+    def chat_events(self, model: str, messages: list[dict], tools: list[dict] | None = None,
+                    temperature: float = 0.2, max_tokens: int | None = None) -> Iterator[tuple[str, object]]:
+        """Streaming complet. Émet ("token", str) pour chaque morceau de texte,
+        ("tool", ToolCall) quand un appel d'outil est complet, puis ("done", Reply).
+        Si le serveur refuse le streaming avec outils, bascule en mode non streamé."""
+        payload: dict = {"model": model, "messages": messages, "temperature": temperature,
+                         "stream": True, "stream_options": {"include_usage": True}}
+        if tools:
+            payload["tools"] = tools
+        if max_tokens:
+            payload["max_tokens"] = max_tokens
+        try:
+            resp = self._request("/chat/completions", payload, stream=True)
+        except LLMError as exc:
+            if "HTTP 4" not in str(exc):
+                raise
+            reply = self.chat(model, messages, tools, temperature, max_tokens)
+            if reply.content:
+                yield ("token", reply.content)
+            for call in reply.tool_calls:
+                yield ("tool", call)
+            yield ("done", reply)
+            return
+
+        text_parts: list[str] = []
+        pending: dict[int, dict] = {}     # index -> {id, name, args}
+        usage: dict = {}
+        with resp:
+            for raw in resp:
+                line = raw.decode("utf-8", "replace").strip()
+                if not line.startswith("data:"):
+                    continue
+                chunk = line[5:].strip()
+                if chunk == "[DONE]":
+                    break
+                try:
+                    data = json.loads(chunk)
+                except ValueError:
+                    continue
+                if data.get("usage"):
+                    usage = data["usage"]
+                choices = data.get("choices") or []
+                if not choices:
+                    continue
+                delta = choices[0].get("delta") or {}
+                text = delta.get("content")
+                if text:
+                    text_parts.append(text)
+                    yield ("token", text)
+                for tc in delta.get("tool_calls") or []:
+                    idx = tc.get("index", len(pending))
+                    slot = pending.setdefault(idx, {"id": "", "name": "", "args": ""})
+                    slot["id"] = tc.get("id") or slot["id"]
+                    fn = tc.get("function") or {}
+                    slot["name"] = fn.get("name") or slot["name"]
+                    args = fn.get("arguments")
+                    if isinstance(args, dict):
+                        slot["args"] = json.dumps(args)
+                    elif args:
+                        slot["args"] += args
+
+        reply = Reply(content="".join(text_parts), usage=usage)
+        for idx in sorted(pending):
+            slot = pending[idx]
+            try:
+                args = json.loads(slot["args"]) if slot["args"] else {}
+            except ValueError:
+                args = {"_raw": slot["args"]}
+            reply.tool_calls.append(ToolCall(id=slot["id"] or f"call-{idx}", name=slot["name"], arguments=args))
+        if not reply.tool_calls and reply.content:
+            cleaned, calls = extract_tool_calls(reply.content)
+            if calls:
+                reply.content, reply.tool_calls = cleaned, calls
+        for call in reply.tool_calls:
+            yield ("tool", call)
+        yield ("done", reply)
 
     def embed(self, model: str, texts: list[str]) -> list[list[float]]:
         with self._request("/embeddings", {"model": model, "input": texts}) as resp:
@@ -144,12 +222,12 @@ def extract_tool_calls(text: str) -> tuple[str, list[ToolCall]]:
     return cleaned.strip(), calls
 
 
-def _parse_message(msg: dict) -> Reply:
-    reply = Reply(content=msg.get("content") or "")
+def _parse_message(msg: dict, usage: dict | None = None) -> Reply:
+    reply = Reply(content=msg.get("content") or "", usage=usage or {})
     if not msg.get("tool_calls") and reply.content:
         cleaned, calls = extract_tool_calls(reply.content)
         if calls:
-            return Reply(content=cleaned, tool_calls=calls)
+            return Reply(content=cleaned, tool_calls=calls, usage=reply.usage)
     for call in msg.get("tool_calls") or []:
         fn = call.get("function", {})
         args = fn.get("arguments") or "{}"

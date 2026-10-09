@@ -25,8 +25,13 @@ lui, ne change pas.
 ## Installation
 
 ```bash
-pip install -e ".[dev]"
+uv venv --python 3.12
+source .venv/bin/activate      # Windows : .venv\Scripts\activate
+uv pip install -e ".[dev]"
 ```
+
+Après un `git pull`, relancez `uv pip install -e ".[dev]"` si les dépendances
+ont changé.
 
 Puis un serveur d'inférence :
 
@@ -79,6 +84,21 @@ lit, crée et modifie des fichiers uniquement dedans. S'il n'existe pas,
 La configuration est écrite au premier lancement dans `~/.cerveau/config.json`.
 Les variables `CERVEAU_BASE_URL`, `CERVEAU_MODEL` et `CERVEAU_EMBEDDING_MODEL`
 la surchargent.
+
+## Console
+
+`cerveau chat <dossier>` ouvre une console interactive :
+
+- le texte du modèle s'affiche au fil des tokens, puis est rendu en Markdown ;
+- chaque appel d'outil apparaît au moment où il part, avec son résultat ;
+- une commande que le modèle veut exécuter est affichée et attend votre `o` ;
+- après chaque réponse : tokens de contexte, tokens générés, débit, durée,
+  nombre d'outils et jauge de remplissage du contexte. Un `~` devant les
+  compteurs signale une estimation, quand le serveur ne fournit pas `usage`.
+
+Commandes : `/help`, `/note`, `/memory`, `/model [nom]`, `/skills`, `/verbose`,
+`/clear`, `/stats`, `/quit`. Ctrl+C interrompt une réponse en cours.
+`cerveau chat --plain` donne le mode texte simple.
 
 ## Paliers de modèle
 

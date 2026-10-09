@@ -88,18 +88,32 @@ def cmd_check(_args: argparse.Namespace) -> int:
     return 0
 
 
-def _agent(args: argparse.Namespace) -> Agent:
-    cfg = config.load()
+def _project_root(args: argparse.Namespace) -> Path:
     root = Path(args.project).resolve()
     if not root.is_dir():
         answer = input(f"Le dossier {root} n'existe pas. Le créer ? [o/N] ").strip().lower()
         if answer not in ("o", "oui", "y", "yes"):
             sys.exit("abandon")
         root.mkdir(parents=True)
+    return root
+
+
+def _agent(args: argparse.Namespace) -> Agent:
+    cfg = config.load()
+    root = _project_root(args)
     return Agent(cfg, root, on_token=_print_token, on_tool=_print_tool, confirm=_confirm)
 
 
 def cmd_chat(args: argparse.Namespace) -> int:
+    if not args.plain:
+        try:
+            from . import console
+        except ImportError:
+            console = None  # type: ignore[assignment]
+        if console is not None:
+            cfg = config.load()
+            root = _project_root(args)
+            return console.run(cfg, root)
     agent = _agent(args)
     print(f"Cerveau v{__version__} · projet « {agent.project} » · modèle {agent.config.model}")
     print(f"dossier de travail : {agent.root}")
@@ -123,7 +137,9 @@ def cmd_chat(args: argparse.Namespace) -> int:
             agent.ask(line)
         except LLMError as exc:
             print(f"\n✗ {exc}")
-        print("\n")
+        st = agent.last_stats
+        print(f"\n  [{'~' if st.estimated else ''}{st.prompt_tokens} ctx, {st.completion_tokens} générés, "
+              f"{st.tokens_per_second:.0f} tok/s, {st.elapsed:.1f} s, {st.tool_calls} outils]\n")
     return 0
 
 
@@ -251,9 +267,10 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("info", help="matériel détecté et modèle recommandé").set_defaults(fn=cmd_info)
     sub.add_parser("check", help="vérifie la connexion au serveur d'inférence").set_defaults(fn=cmd_check)
 
-    for name, fn, help_ in (("chat", cmd_chat, "dialogue avec mémoire"), ("audit", cmd_audit, "audit de sécurité")):
+    for name, fn, help_ in (("chat", cmd_chat, "console interactive"), ("audit", cmd_audit, "audit de sécurité")):
         p = sub.add_parser(name, help=help_)
         p.add_argument("project", nargs="?", default=".")
+        p.add_argument("--plain", action="store_true", help="mode texte simple, sans la console rich")
         p.set_defaults(fn=fn)
 
     p = sub.add_parser("memory", help="affiche les souvenirs d'un projet")

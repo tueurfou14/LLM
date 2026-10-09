@@ -26,6 +26,7 @@ class Config:
     context_tokens: int = 16384
     temperature: float = 0.2
     max_memories: int = 6
+    max_tool_rounds: int = 60
     tier: str = "small"
     hardware: dict = field(default_factory=dict)
 
