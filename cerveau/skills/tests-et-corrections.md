@@ -10,3 +10,5 @@ Procédure :
 5. Ajoute ou adapte un test qui aurait échoué avant la correction et passe après.
 6. Relance les tests avec `run_command` et montre le résultat. Si ça échoue encore, reprends à l'étape 2 avec la nouvelle trace, ne devine pas.
 7. Résume : cause, correction, test ajouté.
+
+Règle des trois essais : si la même erreur persiste après trois corrections, arrête de modifier. Relis entièrement les fichiers impliqués, cherche le message d'erreur exact avec `web_search`, et reformule ton hypothèse par écrit avant de toucher au code. Relancer les mêmes tests sans avoir changé la cause ne sert à rien.

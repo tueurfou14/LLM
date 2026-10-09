@@ -57,6 +57,7 @@ PORTEE | TYPE | phrase courte à la troisième personne
 où PORTEE vaut « global » si cela vaut pour tous ses projets (goûts, outils, langue, façon de travailler) ou « projet » si c'est propre à ce projet, et TYPE vaut « preference », « fact » ou « decision ». Trois lignes au maximum."""
 
 MAX_TOOL_ROUNDS = 60   # tours modèle+outils par réponse ; surchargé par config.max_tool_rounds
+MAX_IDENTICAL_CALLS = 2  # au-delà, un appel identique (hors lecture) est refusé avec un conseil
 RESERVE_TOKENS = 2048  # place gardée pour la réponse du modèle
 KEEP_RECENT_TOOL_RESULTS = 6
 
@@ -144,6 +145,8 @@ class Agent:
 
         final_text = ""
         actions: list[str] = []
+        seen: dict[str, int] = {}          # même outil + mêmes arguments, combien de fois dans cette réponse
+        last_results: dict[str, str] = {}  # dernier résultat par appel identique
         limit = getattr(self.config, "max_tool_rounds", MAX_TOOL_ROUNDS) or MAX_TOOL_ROUNDS
         for _ in range(limit):
             stats.rounds += 1
@@ -160,7 +163,19 @@ class Agent:
                 actions.append(_describe_call(call))
                 if self.on_tool_start:
                     self.on_tool_start(call.name, call.arguments)
-                result = self.registry.call(call.name, call.arguments, self.root, confirm=self.confirm)
+                key = call.name + json.dumps(call.arguments, sort_keys=True, ensure_ascii=False)
+                seen[key] = seen.get(key, 0) + 1
+                if seen[key] > MAX_IDENTICAL_CALLS and call.name not in ("read_file", "list_files", "search_code"):
+                    result = (f"STOP : tu as déjà lancé exactement « {_describe_call(call)} » {seen[key] - 1} fois dans "
+                              "cette réponse avec le même résultat. Refaire la même action ne changera rien. "
+                              "Change d'approche : relis les fichiers impliqués (read_file), cherche le symbole en "
+                              "cause (search_code), ou cherche l'erreur sur le web (web_search). Si tu ne trouves "
+                              "pas, note le blocage dans PLAN.md et passe à la suite.")
+                else:
+                    result = self.registry.call(call.name, call.arguments, self.root, confirm=self.confirm)
+                    if last_results.get(key) == result and call.name == "run_command":
+                        result += "\n\n[cerveau] Résultat identique à l'exécution précédente : la cause n'a pas été corrigée. Lis le code avant de relancer."
+                    last_results[key] = result
                 if self.on_tool:
                     self.on_tool(call.name, call.arguments, result)
                 messages.append({"role": "tool", "tool_call_id": call.id or call.name, "name": call.name,

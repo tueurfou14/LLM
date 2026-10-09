@@ -163,3 +163,18 @@ def test_registry_normalizes_before_read_check(tmp_path):
     # relu sous une autre graphie, puis remplacé : même fichier
     reg.call("read_file", {"path": ".\\app.py"}, root)
     assert "remplacé" in reg.call("write_file", {"path": "/app.py", "content": "b"}, root)
+
+
+def test_server_command_is_stopped_quickly(project: Path, monkeypatch):
+    import time
+    from cerveau.tools import shell
+
+    monkeypatch.setattr(shell, "SERVER_TIMEOUT", 2)
+    assert shell.is_server_command("uv run uvicorn app.main:app --reload")
+    assert shell.is_server_command("npm run dev")
+    assert not shell.is_server_command("uv run pytest -q")
+    assert not shell.is_server_command("npm run build")
+    t0 = time.perf_counter()
+    out = shell.run_command(project, "python -c \"import sys; print('started', flush=True); sys.stdin.read() if False else __import__('time').sleep(60)\" --reload")
+    assert time.perf_counter() - t0 < 15
+    assert "serveur arrêté" in out and "started" in out

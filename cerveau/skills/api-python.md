@@ -20,3 +20,12 @@ Règles :
 
 Dépendances minimales : `fastapi`, `uvicorn`, `sqlalchemy`, `pydantic`, `pytest`, `httpx`, déclarées dans `pyproject.toml`.
 Installation : `uv venv` une fois, puis `uv pip install -e .`. Lancement : `uv run uvicorn <paquet>.main:app --reload`.
+
+
+## Diagnostics fréquents (lis ceci avant de relancer les tests une troisième fois)
+- **404 sur une route qui existe** : le routeur n'est pas inclus dans `main.py` (`app.include_router(clients.router)`), ou son `prefix` ne correspond pas à l'URL testée (`/clients` vs `/api/clients`), ou le test importe une autre `app`. Ouvre `main.py` et le routeur, compare les chemins exacts.
+- **`KeyError: 'id'` dans un test** : la réponse n'est pas celle attendue, presque toujours à cause d'un 404 ou d'un 422 juste avant. Affiche `response.json()` dans l'assertion.
+- **422** : le corps envoyé ne respecte pas le schéma Pydantic ; compare les champs du test et de `schemas.py`.
+- **`detail` en anglais (« Not Found »)** : c'est le 404 par défaut de FastAPI, la route n'a pas été atteinte ; voir le premier point.
+- **Base vide entre les tests** : utiliser une base SQLite en mémoire par test ou `Base.metadata.create_all` dans une fixture.
+- **Ne lance jamais `uvicorn` ou un serveur pour déboguer** : il ne se termine pas. Les tests avec `TestClient` couvrent le même chemin, sans serveur.

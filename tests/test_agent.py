@@ -210,3 +210,15 @@ def test_autonomous_loop_respects_limit(tmp_path):
 def test_autonomy_detection():
     assert Agent.wants_autonomy("Fais l'ERP pro et sois autonome jusqu'au bout")
     assert not Agent.wants_autonomy("ajoute un test")
+
+
+def test_identical_tool_calls_are_cut_short(tmp_path):
+    (tmp_path / "x.txt").write_text("a")
+    call = ToolCall(id="1", name="run_command", arguments={"command": "echo same"})
+    agent = make_agent(tmp_path, [Reply(tool_calls=[call]) for _ in range(4)] + [Reply(content="ok")])
+    agent.confirm = None
+    agent.ask("boucle")
+    tool_msgs = [m["content"] for m in agent.client.calls[-1] if m.get("role") == "tool"]
+    assert "same" in tool_msgs[0]
+    assert "Résultat identique" in tool_msgs[1]
+    assert tool_msgs[2].startswith("STOP") and tool_msgs[3].startswith("STOP")
