@@ -9,6 +9,9 @@
   cerveau model [nom]           affiche ou change le modèle principal
   cerveau use ollama|lmstudio   bascule le serveur d'inférence
   cerveau bench [modèles...]    mesure le débit réel des modèles
+  cerveau skills                liste les procédures disponibles
+
+Variable CERVEAU_DEBUG=1 : affiche les skills choisis et les réponses brutes du modèle.
 """
 
 from __future__ import annotations
@@ -18,7 +21,7 @@ import sys
 import time
 from pathlib import Path
 
-from . import __version__, config, hardware
+from . import __version__, config, hardware, skills as skills_mod
 from .agent import Agent
 from .llm import Client, LLMError
 from .memory import MemoryStore
@@ -231,6 +234,15 @@ def cmd_bench(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_skills(_args: argparse.Namespace) -> int:
+    items = skills_mod.load_all([config.HOME / "skills"])
+    print(f"{len(items)} skill(s). Les vôtres vont dans {config.HOME / 'skills'} (fichiers .md).\n")
+    for s in items:
+        print(f"{s.name:<24} {s.description}")
+        print(f"{'':<24} mots-clés : {', '.join(s.keywords)}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="cerveau", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--version", action="version", version=f"cerveau {__version__}")
@@ -268,6 +280,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("models", nargs="*", help="modèles à tester, par défaut le modèle actif")
     p.add_argument("--tokens", type=int, default=300)
     p.set_defaults(fn=cmd_bench)
+
+    sub.add_parser("skills", help="liste les procédures disponibles").set_defaults(fn=cmd_skills)
 
     args = parser.parse_args(argv)
     return args.fn(args)

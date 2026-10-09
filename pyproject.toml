@@ -17,3 +17,6 @@ cerveau = "cerveau.__main__:main"
 
 [tool.setuptools.packages.find]
 include = ["cerveau*"]
+
+[tool.setuptools.package-data]
+cerveau = ["skills/*.md"]

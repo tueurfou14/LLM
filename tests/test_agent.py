@@ -58,3 +58,25 @@ def test_memories_injected_in_system_prompt(tmp_path):
 def test_streams_when_no_text_reply(tmp_path):
     agent = make_agent(tmp_path, [Reply(content="")])
     assert agent.ask("dis quelque chose") == "flux"
+
+
+def test_text_tool_call_is_executed(tmp_path):
+    """Un modèle qui écrit <tool_call> en texte brut est quand même servi."""
+    agent = make_agent(tmp_path, [
+        Reply(content='<tool_call>{"name": "create_directory", "arguments": {"path": "src/erp"}}</tool_call>'),
+        Reply(content="Dossier créé."),
+    ])
+    # Reply ne passe pas par _parse_message ; on simule ce que le client ferait.
+    from cerveau.llm import extract_tool_calls
+    first = agent.client.replies[0]
+    first.content, first.tool_calls = extract_tool_calls(first.content)
+    assert agent.ask("crée le dossier src/erp") == "Dossier créé."
+    assert (tmp_path / "src/erp").is_dir()
+
+
+def test_skill_injected_for_matching_request(tmp_path):
+    agent = make_agent(tmp_path, [Reply(content="ok")])
+    agent.ask("fais un audit de sécurité")
+    system = agent.client.calls[0][0]["content"]
+    assert "Skill : Audit de sécurité" in system
+    assert "- write_file :" in system

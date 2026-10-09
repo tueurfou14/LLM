@@ -16,7 +16,8 @@ Tout le reste vit à côté de lui et ne dépend pas de lui :
 | `cerveau/llm.py` | Client OpenAI-compatible avec streaming et appels d'outils | LM Studio ou Ollama |
 | `cerveau/memory.py` | Mémoire de projet : épisodes et faits, recherche vectorielle et plein texte | SQLite |
 | `cerveau/tools/` | Outils que le modèle appelle : lecture, écriture et édition de fichiers, commandes avec confirmation, Semgrep, gitleaks, Trivy | Projet et scanners locaux |
-| `cerveau/agent.py` | La boucle : rappel, modèle, outils, mémorisation | |
+| `cerveau/skills/` | Fiches de procédure en Markdown, injectées selon la demande : nouveau projet, API Python, audit de sécurité, tests | Les vôtres dans `~/.cerveau/skills/` |
+| `cerveau/agent.py` | La boucle : rappel, skills, modèle, outils, mémorisation | |
 
 Changer de modèle revient à changer une ligne de configuration. Le cerveau,
 lui, ne change pas.
@@ -56,7 +57,19 @@ cerveau model                # modèle actif et modèles disponibles sur le serv
 cerveau model qwen3-coder:30b   # change de modèle principal
 cerveau use lmstudio         # bascule le serveur (ollama ou lmstudio)
 cerveau bench qwen2.5-coder:7b qwen3-coder:30b   # compare les débits réels
+cerveau skills               # procédures disponibles
 ```
+
+`CERVEAU_DEBUG=1` affiche les skills retenus et les réponses brutes du modèle,
+utile quand il n'appelle pas un outil alors qu'il le devrait.
+
+## Skills
+
+Un skill est un fichier Markdown avec un titre, une ligne `mots-clés:` et une
+ligne `description:`, suivis de la procédure. Quand une demande contient ces
+mots-clés, la procédure est ajoutée à la consigne du modèle. Un petit modèle
+suit bien une marche à suivre explicite. Ajoutez les vôtres dans
+`~/.cerveau/skills/` ; un fichier du même nom qu'un skill livré le remplace.
 
 Le dossier passé à `chat` ou `audit` est la racine de travail : le modèle
 lit, crée et modifie des fichiers uniquement dedans. S'il n'existe pas,

@@ -7,6 +7,7 @@ d'outils au format OpenAI.
 from __future__ import annotations
 
 import json
+import re
 import urllib.error
 import urllib.request
 from collections.abc import Iterator
@@ -111,8 +112,44 @@ class Client:
         return [item["embedding"] for item in items]
 
 
+_TOOL_CALL_TAG = re.compile(r"<tool_call>\s*(\{.*?\})\s*</tool_call>", re.DOTALL)
+_TOOL_CALL_FENCE = re.compile(r"```(?:json|tool_call|tool)?\s*(\{.*?\})\s*```", re.DOTALL)
+
+
+def extract_tool_calls(text: str) -> tuple[str, list[ToolCall]]:
+    """Certains serveurs renvoient les appels d'outils en texte, sous la forme
+    <tool_call>{...}</tool_call> ou dans un bloc JSON. On les récupère pour
+    qu'un petit modèle reste utilisable. Renvoie le texte nettoyé et les appels."""
+    calls: list[ToolCall] = []
+    cleaned = text
+    for pattern in (_TOOL_CALL_TAG, _TOOL_CALL_FENCE):
+        for match in pattern.finditer(text):
+            try:
+                data = json.loads(match.group(1))
+            except ValueError:
+                continue
+            name = data.get("name") or data.get("tool") or data.get("function")
+            if not isinstance(name, str):
+                continue
+            args = data.get("arguments", data.get("parameters", {}))
+            if isinstance(args, str):
+                try:
+                    args = json.loads(args)
+                except ValueError:
+                    args = {"_raw": args}
+            calls.append(ToolCall(id=f"text-{len(calls)}", name=name, arguments=args or {}))
+            cleaned = cleaned.replace(match.group(0), "")
+        if calls:
+            break
+    return cleaned.strip(), calls
+
+
 def _parse_message(msg: dict) -> Reply:
     reply = Reply(content=msg.get("content") or "")
+    if not msg.get("tool_calls") and reply.content:
+        cleaned, calls = extract_tool_calls(reply.content)
+        if calls:
+            return Reply(content=cleaned, tool_calls=calls)
     for call in msg.get("tool_calls") or []:
         fn = call.get("function", {})
         args = fn.get("arguments") or "{}"

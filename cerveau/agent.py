@@ -8,17 +8,23 @@ OpenAI-compatible ; la mémoire et les outils sont indépendants de lui.
 from __future__ import annotations
 
 import json
+import os
+import sys
 from collections.abc import Callable
 from pathlib import Path
 
-from .config import Config
+from . import skills as skills_mod
+from .config import HOME, Config
 from .llm import Client, Reply
 from .memory import MemoryStore
 from .tools import Registry, default_registry
 
 SYSTEM_PROMPT = """Tu es Cerveau, un développeur senior et auditeur de sécurité. Tu travailles dans le dossier du projet « {project} », qui est ta racine : tous les chemins sont relatifs à ce dossier.
 
-Tu disposes d'outils pour lire, chercher, créer et modifier des fichiers, créer des dossiers, exécuter des commandes (tests, installation, build, git) et lancer des scanners de sécurité. Utilise-les : tu agis, tu ne te contentes pas de décrire.
+Tu disposes des outils suivants, à appeler via le mécanisme d'appel d'outils (jamais en décrivant l'appel dans ta réponse) :
+{tools}
+
+Utilise-les : tu agis, tu ne te contentes pas de décrire. Tu ne peux pas écrire en dehors de la racine du projet ; si l'utilisateur veut travailler ailleurs, dis-lui de relancer « cerveau chat <dossier> ».
 
 Méthode :
 - Pour une tâche de code, annonce en deux lignes ce que tu vas faire, puis crée ou modifie les fichiers avec write_file et edit_file. Un projet complet se construit par étapes : commence par la structure et un premier module qui fonctionne, puis étends. Ne demande pas de permission pour écrire dans le projet.
@@ -27,7 +33,7 @@ Méthode :
 - Pour un audit de sécurité, lance d'abord les scanners disponibles, puis lis le code concerné pour confirmer ou écarter chaque résultat, classe les failles par gravité avec fichier et ligne, et propose un correctif concret.
 - Tu réponds en français, de façon précise et concise. Tu ne refuses jamais une tâche de développement ou d'audit sur ce projet ; si quelque chose est hors de portée de tes outils, dis exactement ce qui manque.
 - Quand une tâche est terminée, résume ce qui a été fait et ce qui reste à faire.
-
+{skills}
 Souvenirs pertinents sur ce projet :
 {memories}
 """
@@ -50,6 +56,8 @@ class Agent:
         self.on_tool = on_tool
         self.confirm = confirm
         self.history: list[dict] = []
+        self.skills = skills_mod.load_all([HOME / "skills"])
+        self.debug = bool(os.environ.get("CERVEAU_DEBUG"))
 
     # --- embeddings -----------------------------------------------------------
 
@@ -58,13 +66,21 @@ class Agent:
 
     # --- prompt ---------------------------------------------------------------
 
-    def _system(self, query: str) -> str:
-        memories = self.store.recall(self.project, query, limit=self.config.max_memories)
+    def _system(self, user_message: str) -> str:
+        memories = self.store.recall(self.project, user_message, limit=self.config.max_memories)
         if memories:
             text = "\n".join(f"- [{m.kind}] {m.content}" for m in memories)
         else:
             text = "(aucun pour l'instant)"
-        return SYSTEM_PROMPT.format(project=self.project, memories=text)
+        chosen = skills_mod.select(self.skills, user_message)
+        skills_text = ""
+        if chosen:
+            skills_text = "\nProcédures à suivre pour cette demande :\n\n" + skills_mod.render(chosen) + "\n"
+            if self.debug:
+                print(f"[debug] skills : {', '.join(s.name for s in chosen)}", file=sys.stderr)
+        tools_text = "\n".join(f"- {t['function']['name']} : {t['function']['description']}"
+                               for t in self.registry.schemas())
+        return SYSTEM_PROMPT.format(project=self.project, tools=tools_text, skills=skills_text, memories=text)
 
     # --- boucle ---------------------------------------------------------------
 
@@ -76,6 +92,8 @@ class Agent:
         final_text = ""
         for _ in range(MAX_TOOL_ROUNDS):
             reply = self.client.chat(self.config.model, messages, tools=tools, temperature=self.config.temperature)
+            if self.debug:
+                print(f"[debug] réponse brute : {reply!r}"[:1500], file=sys.stderr)
             if not reply.tool_calls:
                 final_text = reply.content
                 break
