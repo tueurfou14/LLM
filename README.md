@@ -89,16 +89,26 @@ la surchargent.
 
 `cerveau chat <dossier>` ouvre une console interactive :
 
-- le texte du modèle s'affiche au fil des tokens, puis est rendu en Markdown ;
-- chaque appel d'outil apparaît au moment où il part, avec son résultat ;
+- le texte du modèle s'affiche au fil des tokens, avec le débit en direct,
+  puis est rendu en Markdown avec coloration des blocs de code ;
+- chaque appel d'outil apparaît au moment où il part, avec un chrono pendant
+  l'exécution et son résultat ;
+- un fichier créé est montré avec coloration syntaxique, un fichier modifié
+  avec son diff avant/après ;
 - une commande que le modèle veut exécuter est affichée et attend votre `o` ;
+  si elle échoue, sa sortie est montrée ;
+- la réflexion des modèles qui raisonnent est repliée en une ligne,
+  dépliable avec `/verbose` ;
 - après chaque réponse : tokens de contexte, tokens générés, débit, durée,
   nombre d'outils et jauge de remplissage du contexte. Un `~` devant les
-  compteurs signale une estimation, quand le serveur ne fournit pas `usage`.
+  compteurs signale une estimation, quand le serveur ne fournit pas `usage` ;
+- à la sortie, un bilan de la session avec les fichiers touchés.
 
-Commandes : `/help`, `/note`, `/memory`, `/model [nom]`, `/skills`, `/verbose`,
-`/clear`, `/stats`, `/quit`. Ctrl+C interrompt une réponse en cours.
-`cerveau chat --plain` donne le mode texte simple.
+Saisie : flèches haut/bas pour l'historique, Tab complète les commandes,
+Alt+Entrée ajoute une ligne. Commandes : `/help`, `/note`, `/memory`,
+`/model [nom]`, `/skills`, `/files`, `/audit`, `/verbose`, `/clear`, `/stats`,
+`/quit`. Ctrl+C interrompt une réponse en cours. `cerveau chat --plain` donne
+le mode texte simple.
 
 ## Paliers de modèle
 

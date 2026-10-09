@@ -64,7 +64,8 @@ class Agent:
                  on_token: Callable[[str], None] | None = None,
                  on_tool: Callable[[str, dict, str], None] | None = None,
                  confirm: Callable[[str, dict], bool] | None = None,
-                 on_tool_start: Callable[[str, dict], None] | None = None):
+                 on_tool_start: Callable[[str, dict], None] | None = None,
+                 on_thinking: Callable[[str], None] | None = None):
         self.config = config
         self.root = project_root.resolve()
         self.project = self.root.name
@@ -75,6 +76,7 @@ class Agent:
         self.on_tool = on_tool
         self.confirm = confirm
         self.on_tool_start = on_tool_start
+        self.on_thinking = on_thinking
         self.history: list[dict] = []
         self.last_stats = TurnStats()
         self.skills = skills_mod.load_all([HOME / "skills"])
@@ -172,6 +174,9 @@ class Agent:
                     chars += len(payload)  # type: ignore[arg-type]
                     if self.on_token:
                         self.on_token(payload)  # type: ignore[arg-type]
+                elif kind == "thinking":
+                    if self.on_thinking:
+                        self.on_thinking(payload)  # type: ignore[arg-type]
                 elif kind == "done":
                     reply = payload  # type: ignore[assignment]
         else:

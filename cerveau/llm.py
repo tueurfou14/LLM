@@ -109,6 +109,7 @@ class Client:
     def chat_events(self, model: str, messages: list[dict], tools: list[dict] | None = None,
                     temperature: float = 0.2, max_tokens: int | None = None) -> Iterator[tuple[str, object]]:
         """Streaming complet. Émet ("token", str) pour chaque morceau de texte,
+        ("thinking", str) pour la réflexion des modèles qui raisonnent,
         ("tool", ToolCall) quand un appel d'outil est complet, puis ("done", Reply).
         Si le serveur refuse le streaming avec outils, bascule en mode non streamé."""
         payload: dict = {"model": model, "messages": messages, "temperature": temperature,
@@ -151,6 +152,9 @@ class Client:
                 if not choices:
                     continue
                 delta = choices[0].get("delta") or {}
+                thought = delta.get("reasoning_content") or delta.get("reasoning")
+                if thought:
+                    yield ("thinking", thought)
                 text = delta.get("content")
                 if text:
                     text_parts.append(text)
