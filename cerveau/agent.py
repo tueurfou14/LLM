@@ -52,7 +52,8 @@ class TurnStats:
     rounds: int = 0
     tool_calls: int = 0
     elapsed: float = 0.0
-    generation_time: float = 0.0
+    generation_time: float = 0.0  # temps de génération pure, prefill exclu
+    first_token: float = 0.0      # attente avant le premier token du dernier tour
     estimated: bool = False       # True si le serveur n'a pas fourni usage
 
     @property
@@ -169,11 +170,14 @@ class Agent:
         """Un appel au modèle, en streaming si le client le permet. Les tokens
         de texte sont transmis à on_token au fil de l'eau."""
         t0 = time.perf_counter()
+        first: float | None = None
         chars = 0
         if hasattr(self.client, "chat_events"):
             reply = Reply()
             for kind, payload in self.client.chat_events(self.config.model, messages, tools=tools,
                                                          temperature=self.config.temperature):
+                if kind in ("token", "thinking") and first is None:
+                    first = time.perf_counter() - t0
                 if kind == "token":
                     chars += len(payload)  # type: ignore[arg-type]
                     if self.on_token:
@@ -188,7 +192,11 @@ class Agent:
             chars = len(reply.content)
             if reply.content and self.on_token:
                 self.on_token(reply.content)
-        stats.generation_time += time.perf_counter() - t0
+        total = time.perf_counter() - t0
+        # Les appels d'outils purs n'émettent aucun token texte : on ne peut pas isoler le prefill,
+        # on garde le temps total pour ce tour.
+        stats.first_token = first if first is not None else 0.0
+        stats.generation_time += (total - first) if first is not None else total
         usage = reply.usage or {}
         if usage.get("completion_tokens") is not None:
             stats.completion_tokens += int(usage.get("completion_tokens") or 0)

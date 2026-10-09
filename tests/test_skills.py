@@ -49,3 +49,22 @@ def test_extract_tool_calls_from_json_fence():
 def test_plain_text_has_no_tool_calls():
     cleaned, calls = extract_tool_calls("Voici du code :\n```json\n{\"a\": 1}\n```")
     assert calls == [] and "code" in cleaned
+
+
+def test_extract_qwen3_coder_function_format_even_truncated():
+    text = 'Je crée le dossier.\n\n<function=create_directory> <parameter=path> Garage   </tool_call>'
+    cleaned, calls = extract_tool_calls(text)
+    assert cleaned == "Je crée le dossier."
+    assert calls[0].name == "create_directory" and calls[0].arguments == {"path": "Garage"}
+
+
+def test_extract_qwen3_coder_function_format_complete_multi():
+    text = ('<tool_call>\n<function=write_file>\n<parameter=path>\nsrc/a.py\n</parameter>\n'
+            '<parameter=content>\nprint("x")\n</parameter>\n</function>\n</tool_call>\n'
+            '<tool_call><function=read_file><parameter=path>b.py</parameter><parameter=max_lines>50</parameter>'
+            '</function></tool_call>')
+    cleaned, calls = extract_tool_calls(text)
+    assert cleaned == ""
+    assert [c.name for c in calls] == ["write_file", "read_file"]
+    assert calls[0].arguments == {"path": "src/a.py", "content": 'print("x")'}
+    assert calls[1].arguments == {"path": "b.py", "max_lines": 50}

@@ -234,7 +234,7 @@ class ChatConsole:
             Text(f"↑ {tilde}{_fmt(st.prompt_tokens)}", style="dim"),
             Text(f"↓ {tilde}{_fmt(st.completion_tokens)}", style="dim"),
             Text(f"{st.tokens_per_second:.0f} tok/s", style="bold" if st.tokens_per_second >= 20 else "yellow"),
-            Text(f"{st.elapsed:.1f} s", style="dim"),
+            Text(f"⏱ {st.first_token:.1f} s + {st.elapsed - st.first_token:.1f} s", style="dim"),
             Text(f"{st.tool_calls} outil{'s' if st.tool_calls > 1 else ''}", style="dim"),
             Text("contexte", style="dim"), bar, Text(f"{pct}%", style="dim"),
         )

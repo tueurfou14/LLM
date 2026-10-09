@@ -215,6 +215,22 @@ def _guarded(resp, timeout: float):
 
 _TOOL_CALL_TAG = re.compile(r"<tool_call>\s*(\{.*?\})\s*</tool_call>", re.DOTALL)
 _TOOL_CALL_FENCE = re.compile(r"```(?:json|tool_call|tool)?\s*(\{.*?\})\s*```", re.DOTALL)
+# Format de Qwen3-Coder : <function=nom><parameter=clé>valeur</parameter></function>,
+# souvent incomplet (balises fermantes absentes) quand il fuit en texte.
+_FUNCTION_TAG = re.compile(r"<function=([\w.-]+)>(.*?)(?:</function>|</tool_call>|(?=<function=)|\Z)", re.DOTALL)
+_PARAMETER_TAG = re.compile(r"<parameter=([\w.-]+)>\s*(.*?)\s*(?=<parameter=|</parameter>|</function>|</tool_call>|\Z)",
+                            re.DOTALL)
+_TOOL_CALL_WRAPPER = re.compile(r"</?tool_call>\s*")
+
+
+def _coerce(value: str):
+    """Les valeurs des paramètres arrivent en texte : on rend les nombres et booléens."""
+    low = value.strip()
+    if low in ("true", "false"):
+        return low == "true"
+    if re.fullmatch(r"-?\d+", low):
+        return int(low)
+    return value
 
 
 def extract_tool_calls(text: str) -> tuple[str, list[ToolCall]]:
@@ -223,6 +239,13 @@ def extract_tool_calls(text: str) -> tuple[str, list[ToolCall]]:
     qu'un petit modèle reste utilisable. Renvoie le texte nettoyé et les appels."""
     calls: list[ToolCall] = []
     cleaned = text
+    if "<function=" in text:
+        for match in _FUNCTION_TAG.finditer(text):
+            args = {k: _coerce(v) for k, v in _PARAMETER_TAG.findall(match.group(2))}
+            calls.append(ToolCall(id=f"text-{len(calls)}", name=match.group(1), arguments=args))
+            cleaned = cleaned.replace(match.group(0), "")
+        if calls:
+            return _TOOL_CALL_WRAPPER.sub("", cleaned).strip(), calls
     for pattern in (_TOOL_CALL_TAG, _TOOL_CALL_FENCE):
         for match in pattern.finditer(text):
             try:
