@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cerveau"
+version = "0.1.0"
+description = "Noyau de mémoire et d'orchestration pour un assistant de code local, portable Mac et Windows."
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+cerveau = "cerveau.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["cerveau*"]
