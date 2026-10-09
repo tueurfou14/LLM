@@ -125,3 +125,27 @@ def test_skill_injected_for_matching_request(tmp_path):
     system = agent.client.calls[0][0]["content"]
     assert "Skill : Audit de sécurité" in system
     assert "- write_file :" in system
+
+
+def test_timeout_becomes_llm_error():
+    import socket
+    import threading
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+
+    from cerveau.llm import Client, LLMError
+
+    class Silent(BaseHTTPRequestHandler):
+        def log_message(self, *a):
+            pass
+
+        def do_POST(self):
+            import time
+            time.sleep(2)   # plus long que le timeout du client
+
+    srv = HTTPServer(("127.0.0.1", 0), Silent)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    client = Client(f"http://127.0.0.1:{srv.server_port}/v1", timeout=0.5)
+    import pytest
+    with pytest.raises(LLMError, match="n'a rien envoyé"):
+        list(client.chat_events("m", [{"role": "user", "content": "x"}]))
+    srv.shutdown()

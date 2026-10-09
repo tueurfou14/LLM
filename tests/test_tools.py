@@ -77,3 +77,14 @@ def test_run_command_requires_confirmation(project: Path):
 def test_run_command_without_confirm_hook_runs(project: Path):
     reg = default_registry()
     assert "hello" in reg.call("run_command", {"command": "echo hello"}, project)
+
+
+def test_write_file_requires_reading_existing_file_first(project: Path):
+    reg = default_registry()
+    refused = reg.call("write_file", {"path": "app.py", "content": "x"}, project)
+    assert "existe déjà" in refused
+    assert (project / "app.py").read_text().startswith("import os")
+    reg.call("read_file", {"path": "app.py"}, project)
+    assert "remplacé" in reg.call("write_file", {"path": "app.py", "content": "x"}, project)
+    # un fichier nouveau s'écrit sans lecture préalable
+    assert "créé" in reg.call("write_file", {"path": "new.py", "content": "y"}, project)

@@ -71,7 +71,8 @@ class Agent:
         self.config = config
         self.root = project_root.resolve()
         self.project = self.root.name
-        self.client = client or Client(config.base_url, config.api_key)
+        self.client = client or Client(config.base_url, config.api_key,
+                                       timeout=getattr(config, "timeout_seconds", 600))
         self.store = store or MemoryStore(config.db_path, embedder=self._embed)
         self.registry = registry or default_registry()
         self.on_token = on_token

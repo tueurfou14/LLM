@@ -24,6 +24,7 @@ class Tool:
 class Registry:
     def __init__(self) -> None:
         self._tools: dict[str, Tool] = {}
+        self.read_paths: set[str] = set()   # fichiers lus ou écrits pendant la session
 
     def add(self, tool: Tool) -> None:
         self._tools[tool.name] = tool
@@ -41,12 +42,25 @@ class Registry:
             return f"Outil inconnu : {name}. Outils disponibles : {', '.join(self._tools)}"
         if tool.dangerous and confirm is not None and not confirm(name, arguments):
             return f"L'utilisateur a refusé l'exécution de {name}. Propose une autre approche ou demande-lui pourquoi."
+        path = str(arguments.get("path", "")) if isinstance(arguments, dict) else ""
+        if name == "write_file" and path:
+            target = root / path
+            if target.is_file() and _norm(path) not in self.read_paths:
+                return (f"{path} existe déjà et tu ne l'as pas lu dans cette session. Lis-le avec read_file, "
+                        "puis modifie-le avec edit_file ou remplace-le avec write_file en connaissance de cause.")
         try:
-            return tool.run(root=root, **arguments)
+            result = tool.run(root=root, **arguments)
         except TypeError as exc:
             return f"Arguments invalides pour {name} : {exc}"
         except Exception as exc:  # noqa: BLE001 - l'erreur doit revenir au modèle, pas planter l'agent
             return f"Erreur dans {name} : {type(exc).__name__}: {exc}"
+        if name in ("read_file", "write_file", "edit_file") and path:
+            self.read_paths.add(_norm(path))
+        return result
+
+
+def _norm(path: str) -> str:
+    return path.replace("\\", "/").strip("/").lower()
 
 
 def default_registry() -> Registry:

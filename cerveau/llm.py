@@ -52,10 +52,14 @@ class Client:
         )
         try:
             return urllib.request.urlopen(req, timeout=self.timeout)  # noqa: S310
+        except TimeoutError as exc:
+            raise LLMError(_timeout_message(self.timeout)) from exc
         except urllib.error.HTTPError as exc:
             body = exc.read().decode("utf-8", "replace")
             raise LLMError(f"HTTP {exc.code} sur {path} : {body[:500]}") from exc
         except urllib.error.URLError as exc:
+            if isinstance(exc.reason, TimeoutError):
+                raise LLMError(_timeout_message(self.timeout)) from exc
             raise LLMError(
                 f"Impossible de joindre {self.base_url} ({exc.reason}). "
                 "Lancez LM Studio ou Ollama, ou corrigez base_url dans la config."
@@ -135,7 +139,7 @@ class Client:
         pending: dict[int, dict] = {}     # index -> {id, name, args}
         usage: dict = {}
         with resp:
-            for raw in resp:
+            for raw in _guarded(resp, self.timeout):
                 line = raw.decode("utf-8", "replace").strip()
                 if not line.startswith("data:"):
                     continue
@@ -192,6 +196,21 @@ class Client:
             data = json.load(resp)
         items = sorted(data["data"], key=lambda d: d.get("index", 0))
         return [item["embedding"] for item in items]
+
+
+def _timeout_message(timeout: float) -> str:
+    return (f"Le serveur n'a rien envoyé pendant {timeout:.0f} s. Causes fréquentes : modèle en cours de "
+            "(re)chargement après un changement de contexte, contexte trop grand pour la mémoire, ou "
+            "serveur bloqué. Vérifiez « ollama ps » et les journaux ; augmentez timeout_seconds dans la config "
+            "si la machine est simplement lente.")
+
+
+def _guarded(resp, timeout: float):
+    """Itère sur un flux SSE en convertissant un délai dépassé en LLMError."""
+    try:
+        yield from resp
+    except TimeoutError as exc:
+        raise LLMError(_timeout_message(timeout)) from exc
 
 
 _TOOL_CALL_TAG = re.compile(r"<tool_call>\s*(\{.*?\})\s*</tool_call>", re.DOTALL)

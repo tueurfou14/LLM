@@ -325,6 +325,14 @@ class ChatConsole:
             self._stop_live()
             self.out.print(f"\n  [red]✗ {exc}[/]")
             return
+        except Exception as exc:  # noqa: BLE001 - une erreur inattendue ne doit pas tuer la session
+            self._stop_status()
+            self._stop_live()
+            self.out.print(f"\n  [red]✗ erreur interne : {type(exc).__name__}: {exc}[/]")
+            self.out.print("  [dim]la session continue ; relancez avec CERVEAU_DEBUG=1 pour le détail[/]")
+            if self.agent.debug:
+                self.out.print_exception()
+            return
         self._stop_status()
         self._flush_thinking()
         self._stop_live()

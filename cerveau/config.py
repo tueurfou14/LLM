@@ -27,6 +27,7 @@ class Config:
     temperature: float = 0.2
     max_memories: int = 6
     max_tool_rounds: int = 60
+    timeout_seconds: int = 600     # attente maximale sans aucun octet du serveur
     tier: str = "small"
     hardware: dict = field(default_factory=dict)
 
