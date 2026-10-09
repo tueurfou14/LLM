@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import fnmatch
+import re
 from pathlib import Path
 
 from .registry import Tool, truncate
@@ -10,8 +11,33 @@ from .registry import Tool, truncate
 IGNORED = {".git", "node_modules", "__pycache__", ".venv", "venv", "dist", "build", ".cerveau", ".pytest_cache"}
 
 
+def normalize_relative(root: Path, raw: str) -> str:
+    """Ramène ce qu'écrit le modèle à un chemin relatif à la racine du projet.
+    Tolère : antislashs, « ./ », barre initiale, chemin absolu dans le projet,
+    et le nom du projet répété en tête (« Garage/garage/models.py »)."""
+    text = str(raw).strip().strip("\"'").replace("\\", "/")
+    root_resolved = root.resolve()
+    root_posix = root_resolved.as_posix().rstrip("/")
+    # Chemin absolu qui pointe dans le projet : on retire la racine.
+    low = text.lower()
+    if low.startswith(root_posix.lower()):
+        text = text[len(root_posix):]
+    elif ":" in text[:3] or text.startswith("//"):
+        raise PermissionError(f"chemin hors du projet : {raw}")
+    text = re.sub(r"^(\./)+", "", text).lstrip("/")
+    # Nom du projet répété en tête, à la casse exacte, alors que ce dossier n'existe pas.
+    # (« garage/models.py » en minuscules reste un paquet Python légitime du projet « Garage ».)
+    parts = [p for p in text.split("/") if p not in ("", ".")]
+    if len(parts) > 1 and parts[0] == root_resolved.name and not (root_resolved / parts[0]).exists():
+        parts = parts[1:]
+    if ".." in parts:
+        raise PermissionError(f"chemin hors du projet : {raw}")
+    return "/".join(parts)
+
+
 def safe_path(root: Path, relative: str) -> Path:
-    target = (root / relative).resolve()
+    clean = normalize_relative(root, relative)
+    target = (root / clean).resolve() if clean else root.resolve()
     if root.resolve() not in target.parents and target != root.resolve():
         raise PermissionError(f"chemin hors du projet : {relative}")
     return target
@@ -116,11 +142,12 @@ TOOLS = [
 def write_file(root: Path, path: str, content: str) -> str:
     """Crée ou remplace un fichier du projet. Les dossiers parents sont créés."""
     target = safe_path(root, path)
+    shown = target.relative_to(root.resolve()).as_posix()
     target.parent.mkdir(parents=True, exist_ok=True)
     existed = target.exists()
     target.write_text(content, encoding="utf-8")
     lines = content.count("\n") + (1 if content and not content.endswith("\n") else 0)
-    return f"{'remplacé' if existed else 'créé'} : {path} ({lines} lignes)"
+    return f"{'remplacé' if existed else 'créé'} : {shown} ({lines} lignes)"
 
 
 def edit_file(root: Path, path: str, old: str, new: str) -> str:
@@ -142,7 +169,8 @@ def create_directory(root: Path, path: str) -> str:
     """Crée un dossier, parents compris."""
     target = safe_path(root, path)
     target.mkdir(parents=True, exist_ok=True)
-    return f"dossier prêt : {path}"
+    shown = target.relative_to(root.resolve()).as_posix() or "."
+    return f"dossier prêt : {shown} (racine du projet : {root.resolve()})"
 
 
 TOOLS += [

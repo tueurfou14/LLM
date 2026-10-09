@@ -53,6 +53,13 @@ class Registry:
             if confirm is not None and not confirm(name, arguments):
                 return f"L'utilisateur a refusé l'exécution de {name}. Propose une autre approche ou demande-lui pourquoi."
         path = str(arguments.get("path", "")) if isinstance(arguments, dict) else ""
+        if path:
+            from .files import normalize_relative
+
+            try:
+                path = normalize_relative(root, path)
+            except PermissionError as exc:
+                return f"Erreur dans {name} : {exc}. Les chemins sont relatifs à la racine du projet."
         if name == "write_file" and path:
             target = root / path
             if target.is_file() and _norm(path) not in self.read_paths:

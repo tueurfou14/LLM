@@ -23,7 +23,7 @@ from .memory import GLOBAL, MemoryStore
 from .tools import Registry, default_registry
 from .tools.shell import describe_environment
 
-SYSTEM_PROMPT = """Tu es Cerveau, un développeur senior et auditeur de sécurité. Tu travailles dans le dossier du projet « {project} », qui est ta racine : tous les chemins sont relatifs à ce dossier.
+SYSTEM_PROMPT = """Tu es Cerveau, un développeur senior et auditeur de sécurité. Tu travailles dans le dossier du projet « {project} », dont le chemin complet est {root}. C'est ta racine : tous les chemins que tu donnes aux outils sont relatifs à elle, avec des barres obliques. Exemples corrects : « README.md », « {project_lower}/models.py », « tests/test_models.py ». Incorrects : « {root}/x » (absolu), « {project}/{project_lower}/models.py » (nom du projet répété), « /x » (barre initiale). Pour créer un sous-dossier, create_directory avec son chemin relatif ; write_file crée seul les dossiers parents.
 
 Tu disposes des outils suivants, à appeler via le mécanisme d'appel d'outils (jamais en décrivant l'appel dans ta réponse) :
 {tools}
@@ -129,7 +129,8 @@ class Agent:
                 print(f"[debug] skills : {', '.join(s.name for s in chosen)}", file=sys.stderr)
         tools_text = "\n".join(f"- {t['function']['name']} : {t['function']['description']}"
                                for t in self.registry.schemas())
-        return SYSTEM_PROMPT.format(project=self.project, tools=tools_text, skills=skills_text, memories=text,
+        return SYSTEM_PROMPT.format(project=self.project, project_lower=re.sub(r"[^a-z0-9_]", "_", self.project.lower()),
+                                    root=str(self.root), tools=tools_text, skills=skills_text, memories=text,
                                     environment=describe_environment(self.root))
 
     # --- boucle ---------------------------------------------------------------

@@ -127,3 +127,39 @@ def test_auto_mode_blocks_destructive_but_runs_the_rest(project: Path):
     blocked = reg.call("run_command", {"command": "git reset --hard"}, project)   # confirm=None : mode auto
     assert "refusée" in blocked
     assert "hello" in reg.call("run_command", {"command": "echo hello"}, project)
+
+
+def test_paths_written_by_the_model_are_normalized(tmp_path):
+    from cerveau.tools.files import normalize_relative
+
+    root = tmp_path / "Garage"
+    root.mkdir()
+    n = lambda p: normalize_relative(root, p)  # noqa: E731
+    assert n("garage/models.py") == "garage/models.py"
+    assert n("./garage/models.py") == "garage/models.py"
+    assert n("/garage/models.py") == "garage/models.py"
+    assert n("garage\\routers\\clients.py") == "garage/routers/clients.py"
+    assert n("Garage/garage/models.py") == "garage/models.py"          # nom du projet répété
+    assert n("Garage/README.md") == "README.md"
+    assert n("garage/models.py") == "garage/models.py"                  # paquet en minuscules : conservé
+    assert n(str(root / "garage" / "models.py")) == "garage/models.py"  # absolu dans le projet
+    assert n('"tests/test_a.py"') == "tests/test_a.py"
+    (root / "Garage").mkdir()
+    assert n("Garage/x.py") == "Garage/x.py"                            # le sous-dossier existe vraiment
+    with pytest.raises(PermissionError):
+        n("../autre/x.py")
+    with pytest.raises(PermissionError):
+        n("C:\\Windows\\system32\\x")
+    with pytest.raises(PermissionError):
+        n(str(tmp_path / "ailleurs.py"))
+
+
+def test_registry_normalizes_before_read_check(tmp_path):
+    root = tmp_path / "Garage"
+    root.mkdir()
+    reg = default_registry()
+    assert "créé" in reg.call("write_file", {"path": "Garage/app.py", "content": "a"}, root)
+    assert (root / "app.py").exists() and not (root / "Garage").exists()
+    # relu sous une autre graphie, puis remplacé : même fichier
+    reg.call("read_file", {"path": ".\\app.py"}, root)
+    assert "remplacé" in reg.call("write_file", {"path": "/app.py", "content": "b"}, root)
