@@ -32,6 +32,7 @@ class Skill:
     keywords: list[str]
     body: str
     path: Path
+    priority: int = 0            # départage à score égal ; ligne « priorité: 5 » dans le fichier
     score: int = field(default=0, compare=False)
 
 
@@ -44,6 +45,7 @@ def _fold(text: str) -> str:
 def parse(path: Path) -> Skill:
     text = path.read_text(encoding="utf-8")
     title, description, keywords, body_lines = path.stem, "", [], []
+    priority = 0
     for line in text.splitlines():
         stripped = line.strip()
         low = _fold(stripped)
@@ -53,9 +55,14 @@ def parse(path: Path) -> Skill:
             keywords = [_fold(k.strip()) for k in stripped.split(":", 1)[1].split(",") if k.strip()]
         elif low.startswith("description:"):
             description = stripped.split(":", 1)[1].strip()
+        elif low.startswith("priorite:") or low.startswith("priority:"):
+            try:
+                priority = int(stripped.split(":", 1)[1].strip())
+            except ValueError:
+                priority = 0
         else:
             body_lines.append(line)
-    return Skill(path.stem, title, description, keywords, "\n".join(body_lines).strip(), path)
+    return Skill(path.stem, title, description, keywords, "\n".join(body_lines).strip(), path, priority)
 
 
 def title_set(title: str, path: Path) -> bool:
@@ -75,7 +82,7 @@ def load_all(extra_dirs: list[Path] | None = None) -> list[Skill]:
     return list(skills.values())
 
 
-def select(skills: list[Skill], message: str, limit: int = 2) -> list[Skill]:
+def select(skills: list[Skill], message: str, limit: int = 3) -> list[Skill]:
     """Les skills dont les mots-clés apparaissent dans la demande, les mieux
     notés d'abord. Un mot-clé compte une fois, même répété."""
     folded = _fold(message)
@@ -90,7 +97,7 @@ def select(skills: list[Skill], message: str, limit: int = 2) -> list[Skill]:
                 score += 1
         if score:
             scored.append(Skill(**{**skill.__dict__, "score": score}))
-    scored.sort(key=lambda s: (-s.score, s.name))
+    scored.sort(key=lambda s: (-s.score, -s.priority, s.name))
     return scored[:limit]
 
 

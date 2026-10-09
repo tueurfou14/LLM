@@ -12,6 +12,9 @@
   cerveau skills                liste les procédures disponibles
   cerveau context [n]           affiche ou applique la taille de contexte (crée la variante Ollama)
 
+Dans la console, « /mode auto » supprime les confirmations et le mot « autonome » dans une
+demande fait enchaîner les étapes jusqu'à « ÉTAT : TERMINÉ ».
+
 Variable CERVEAU_DEBUG=1 : affiche les skills choisis et les réponses brutes du modèle.
 """
 

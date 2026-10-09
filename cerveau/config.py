@@ -30,6 +30,8 @@ class Config:
     timeout_seconds: int = 600     # attente maximale sans aucun octet du serveur
     auto_learn: bool = True        # extraire préférences et décisions après chaque réponse
     permission_mode: str = "confirm"   # "confirm" : les commandes attendent un o ; "auto" : rien n'est demandé
+    web_enabled: bool = True           # outils web_search et web_fetch
+    max_autonomous_steps: int = 40     # relances maximales en mode autonome
     tier: str = "small"
     hardware: dict = field(default_factory=dict)
 

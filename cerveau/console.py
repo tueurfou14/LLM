@@ -36,6 +36,7 @@ COMMANDS = {
     "/skills": "procédures disponibles",
     "/files": "fichiers touchés pendant la session",
     "/audit": "lancer l'audit de sécurité du projet",
+    "/autonome": "tâche : enchaîner les étapes sans s'arrêter (aussi déclenché par le mot « autonome »)",
     "/mode": "[confirm|auto] : confirm demande un o avant chaque commande, auto ne demande rien",
     "/verbose": "résultats complets des outils et diffs entiers",
     "/clear": "oublier la conversation en cours (la mémoire reste)",
@@ -321,6 +322,8 @@ class ChatConsole:
                 self.out.print(f"  [dim]{what:<8}[/] {path}")
         elif cmd == "/audit":
             self._ask(AUDIT_PROMPT)
+        elif cmd == "/autonome":
+            self._ask(rest or "Continue en autonomie selon PLAN.md.", autonomous=True)
         elif cmd == "/mode":
             if rest in ("confirm", "auto"):
                 self.mode = rest
@@ -344,11 +347,26 @@ class ChatConsole:
 
     # --- boucle principale -------------------------------------------------------------
 
-    def _ask(self, line: str) -> None:
+    def _on_step(self, step: int, limit: int) -> None:
+        self._stop_status()
+        self._stop_live()
+        if step > 1:
+            self._print_stats(self.agent.last_stats)
+        self.out.rule(f"[magenta]autonome · étape {step}/{limit}[/]", style="magenta")
+        self._start_status("[dim]réflexion…[/]")
+
+    def _ask(self, line: str, autonomous: bool | None = None) -> None:
+        if autonomous is None:
+            autonomous = Agent.wants_autonomy(line)
         self.out.print()
+        if autonomous and self.mode != "auto":
+            self.out.print("  [yellow]mode autonome : les commandes demanderont encore votre o ; « /mode auto » pour ne rien demander[/]")
         self._start_status("[dim]réflexion…[/]")
         try:
-            self.agent.ask(line)
+            if autonomous:
+                self.agent.ask_autonomous(line, on_step=self._on_step)
+            else:
+                self.agent.ask(line)
         except KeyboardInterrupt:
             self._stop_status()
             self._stop_live()

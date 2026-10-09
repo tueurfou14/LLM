@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import json
 import os
+import re
 import sys
 import time
 from collections.abc import Callable
@@ -102,6 +103,9 @@ class Agent:
         self.history: list[dict] = []
         self.last_stats = TurnStats()
         self.skills = skills_mod.load_all([HOME / "skills"])
+        if not getattr(config, "web_enabled", True):
+            self.registry.remove("web_search")
+            self.registry.remove("web_fetch")
         self.debug = bool(os.environ.get("CERVEAU_DEBUG"))
 
     # --- embeddings -----------------------------------------------------------
@@ -117,7 +121,7 @@ class Agent:
             text = "\n".join(f"- [{m.kind}] {m.content}" for m in memories)
         else:
             text = "(aucun pour l'instant)"
-        chosen = skills_mod.select(self.skills, user_message)
+        chosen = skills_mod.select(self.skills, user_message, limit=3)
         skills_text = ""
         if chosen:
             skills_text = "\nProcédures à suivre pour cette demande :\n\n" + skills_mod.render(chosen) + "\n"
@@ -186,6 +190,40 @@ class Agent:
             if getattr(self.config, "auto_learn", True):
                 self.learn(user_message, final_text)
         return final_text
+
+    # --- autonomie -----------------------------------------------------------------
+
+    AUTONOMY_TRIGGERS = ("autonome", "autonomie", "tout seul", "sans t'arrêter", "sans t'arreter", "jusqu'au bout",
+                         "pendant que je dors", "continue sans me demander", "fais tout")
+    DONE_MARKER = re.compile(r"ÉTAT\s*:\s*TERMIN", re.IGNORECASE)
+    CONTINUE_MARKER = re.compile(r"ÉTAT\s*:\s*EN COURS", re.IGNORECASE)
+    CONTINUE_PROMPT = ("Continue en autonomie : relis PLAN.md, prends la première phase non cochée, réalise-la, "
+                       "vérifie avec les tests, coche-la. Termine par la ligne ÉTAT.")
+
+    @classmethod
+    def wants_autonomy(cls, message: str) -> bool:
+        low = message.lower()
+        return any(t in low for t in cls.AUTONOMY_TRIGGERS)
+
+    def ask_autonomous(self, task: str, on_step: Callable[[int, int], None] | None = None) -> str:
+        """Enchaîne les étapes jusqu'à « ÉTAT : TERMINÉ », à la limite ou à une
+        réponse sans marqueur deux fois de suite (le modèle a fini sans le dire)."""
+        limit = getattr(self.config, "max_autonomous_steps", 40)
+        answer = ""
+        missing_marker = 0
+        for step in range(1, limit + 1):
+            if on_step:
+                on_step(step, limit)
+            answer = self.ask(task if step == 1 else self.CONTINUE_PROMPT)
+            if self.DONE_MARKER.search(answer):
+                return answer
+            if self.CONTINUE_MARKER.search(answer):
+                missing_marker = 0
+                continue
+            missing_marker += 1
+            if missing_marker >= 2:
+                return answer
+        return answer + "\n\n(limite d'étapes autonomes atteinte ; écrivez « continue en autonomie » pour reprendre)"
 
     def learn(self, question: str, answer: str) -> list[tuple[str, str, str]]:
         """Demande au modèle ce qui mérite d'être retenu et l'enregistre.

@@ -180,3 +180,33 @@ def test_auto_learn_can_be_disabled(tmp_path):
     agent.config.auto_learn = False
     agent.ask("bonjour")
     assert agent.client.replies == []   # aucun second appel n'a été consommé
+
+
+def test_autonomous_loop_continues_until_done(tmp_path):
+    agent = make_agent(tmp_path, [
+        Reply(content="Phase 1 faite.\nÉTAT : EN COURS — prochaine étape : phase 2"),
+        Reply(content="Phase 2 faite.\nÉTAT : EN COURS — prochaine étape : phase 3"),
+        Reply(content="Tout est fait.\nÉTAT : TERMINÉ"),
+    ])
+    steps = []
+    answer = agent.ask_autonomous("construis le projet, sois autonome", on_step=lambda s, l: steps.append(s))
+    assert "TERMINÉ" in answer and steps == [1, 2, 3]
+    assert agent.client.calls[1][-1]["content"].startswith("Continue en autonomie")
+
+
+def test_autonomous_loop_stops_after_two_answers_without_marker(tmp_path):
+    agent = make_agent(tmp_path, [Reply(content="fini je crois"), Reply(content="vraiment fini"), Reply(content="x")])
+    agent.ask_autonomous("vas-y")
+    assert len(agent.client.replies) == 1
+
+
+def test_autonomous_loop_respects_limit(tmp_path):
+    agent = make_agent(tmp_path, [Reply(content="ÉTAT : EN COURS — prochaine étape : encore") for _ in range(10)])
+    agent.config.max_autonomous_steps = 3
+    answer = agent.ask_autonomous("boucle")
+    assert "limite" in answer and len(agent.client.replies) == 7
+
+
+def test_autonomy_detection():
+    assert Agent.wants_autonomy("Fais l'ERP pro et sois autonome jusqu'au bout")
+    assert not Agent.wants_autonomy("ajoute un test")

@@ -29,6 +29,9 @@ class Registry:
     def add(self, tool: Tool) -> None:
         self._tools[tool.name] = tool
 
+    def remove(self, name: str) -> None:
+        self._tools.pop(name, None)
+
     def schemas(self) -> list[dict]:
         return [t.schema() for t in self._tools.values()]
 
@@ -71,10 +74,10 @@ def _norm(path: str) -> str:
 
 
 def default_registry() -> Registry:
-    from . import files, security, shell
+    from . import files, security, shell, web
 
     reg = Registry()
-    for tool in (*files.TOOLS, *shell.TOOLS, *security.TOOLS):
+    for tool in (*files.TOOLS, *shell.TOOLS, *web.TOOLS, *security.TOOLS):
         reg.add(tool)
     return reg
 

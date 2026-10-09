@@ -15,8 +15,8 @@ Tout le reste vit à côté de lui et ne dépend pas de lui :
 | `cerveau/hardware.py` | Sonde la machine et choisit le palier de modèle | RAM, GPU, mémoire unifiée |
 | `cerveau/llm.py` | Client OpenAI-compatible avec streaming et appels d'outils | LM Studio ou Ollama |
 | `cerveau/memory.py` | Mémoire de projet : épisodes et faits, recherche vectorielle et plein texte | SQLite |
-| `cerveau/tools/` | Outils que le modèle appelle : lecture, écriture et édition de fichiers, commandes avec confirmation, Semgrep, gitleaks, Trivy | Projet et scanners locaux |
-| `cerveau/skills/` | Fiches de procédure en Markdown, injectées selon la demande : nouveau projet, API Python, audit de sécurité, tests | Les vôtres dans `~/.cerveau/skills/` |
+| `cerveau/tools/` | Outils que le modèle appelle : lecture, écriture et édition de fichiers, commandes, recherche et lecture web, Semgrep, gitleaks, Trivy | Projet, web et scanners locaux |
+| `cerveau/skills/` | Fiches de procédure en Markdown, injectées selon la demande : nouveau projet, API Python, audit de sécurité, tests, livraison pro, mode autonome | Les vôtres dans `~/.cerveau/skills/` |
 | `cerveau/agent.py` | La boucle : rappel, skills, modèle, outils, mémorisation | |
 
 Changer de modèle revient à changer une ligne de configuration. Le cerveau,
@@ -102,6 +102,27 @@ la fois. Trois mécanismes la gèrent :
   toujours entiers.
 - **Mémoire de projet** : ce qui a été décidé et fait est mémorisé dans SQLite
   et rappelé selon la demande, même après `/clear` ou un redémarrage.
+
+## Livraison pro, web et autonomie
+
+Trois mots dans une demande changent la façon de travailler :
+
+- **« pro »** (professionnel, production, livrable…) charge le skill de
+  livraison professionnelle : avant d'écrire, le modèle analyse métier,
+  données, sécurité, fiabilité, exploitation, qualité, expérience et
+  documentation, écrit le tout dans `PLAN.md` avec des phases à cocher, puis
+  exécute phase par phase avec les tests verts à chaque étape.
+- **le web** : `web_search` et `web_fetch` permettent de vérifier une version,
+  lire une documentation officielle ou chercher la cause d'une erreur. Le skill
+  pro impose de vérifier à la source toute inconnue. `web_enabled: false` dans
+  la config les retire.
+- **« autonome »** (tout seul, jusqu'au bout, pendant que je dors…) ou
+  `/autonome <tâche>` : le cerveau relance le modèle sur la phase suivante de
+  `PLAN.md` tant que sa réponse se termine par `ÉTAT : EN COURS`, et s'arrête
+  sur `ÉTAT : TERMINÉ`, après deux réponses sans marqueur, ou à
+  `max_autonomous_steps` (40). Ctrl+C interrompt. Combiné à `/mode auto`, rien
+  ne vous est demandé : « Fais un ERP pro pour mon garage, sois autonome »
+  suffit, et `PLAN.md` puis `git diff` racontent ce qui s'est passé.
 
 ## Apprentissage
 
