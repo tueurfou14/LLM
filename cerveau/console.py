@@ -36,6 +36,7 @@ COMMANDS = {
     "/skills": "procédures disponibles",
     "/files": "fichiers touchés pendant la session",
     "/audit": "lancer l'audit de sécurité du projet",
+    "/mode": "[confirm|auto] : confirm demande un o avant chaque commande, auto ne demande rien",
     "/verbose": "résultats complets des outils et diffs entiers",
     "/clear": "oublier la conversation en cours (la mémoire reste)",
     "/stats": "statistiques de la dernière réponse",
@@ -60,6 +61,7 @@ class ChatConsole:
         self.root = root
         self.out = RichConsole(highlight=False)
         self.verbose = False
+        self.mode = cfg.permission_mode if cfg.permission_mode in ("confirm", "auto") else "confirm"
         # Affichage en cours : un seul « live » rich à la fois.
         self.live: Live | None = None
         self.status: Status | None = None
@@ -78,7 +80,12 @@ class ChatConsole:
         self.agent = Agent(cfg, root, on_token=self._on_token, on_thinking=self._on_thinking,
                            on_tool_start=self._on_tool_start, on_tool=self._on_tool, confirm=self._confirm,
                            on_learned=self._on_learned)
+        self._apply_mode()
         self.session = _make_prompt_session()
+
+    def _apply_mode(self) -> None:
+        # En mode auto, aucun rappel de confirmation : le registre applique alors le garde-fou destructif.
+        self.agent.confirm = None if self.mode == "auto" else self._confirm
 
     # --- gestion des affichages vivants -----------------------------------------
 
@@ -159,9 +166,10 @@ class ChatConsole:
                 except OSError:
                     self.pending_old = None
         self.tool_started_at = time.perf_counter()
-        if name == "run_command":
+        if name == "run_command" and self.mode != "auto":
             return  # la confirmation prend la main ; le chrono démarre après
-        self._start_status(f"[dim]{name}…[/]")
+        label = f"exécution : {str(args.get('command', ''))[:60]}" if name == "run_command" else f"{name}…"
+        self._start_status(f"[dim]{label}[/]")
 
     def _on_tool(self, name: str, args: dict, result: str) -> None:
         self._stop_status()
@@ -313,6 +321,15 @@ class ChatConsole:
                 self.out.print(f"  [dim]{what:<8}[/] {path}")
         elif cmd == "/audit":
             self._ask(AUDIT_PROMPT)
+        elif cmd == "/mode":
+            if rest in ("confirm", "auto"):
+                self.mode = rest
+                self.cfg.permission_mode = rest
+                self.cfg.save()
+                self._apply_mode()
+            label = ("auto : rien n'est demandé, les commandes destructrices sont bloquées"
+                     if self.mode == "auto" else "confirm : chaque commande attend votre o")
+            self.out.print(f"  mode [bold]{label}[/]")
         elif cmd == "/verbose":
             self.verbose = not self.verbose
             self.out.print(f"  résultats complets et diffs entiers : {'oui' if self.verbose else 'non'}")
@@ -377,6 +394,7 @@ class ChatConsole:
         header.add_row(Text(f"Cerveau v{__version__}", style="bold"),
                        Text(f"modèle {self.cfg.model}", style="cyan"),
                        Text(f"projet {self.agent.project}", style="green"),
+                       Text("mode auto" if self.mode == "auto" else "mode confirm", style="magenta" if self.mode == "auto" else "dim"),
                        Text(str(self.root), style="dim"))
         self.out.print(Panel(header, border_style="blue"))
         self.out.print("[dim]/help pour les commandes, /quit pour sortir.[/]\n")

@@ -40,8 +40,15 @@ class Registry:
         tool = self._tools.get(name)
         if tool is None:
             return f"Outil inconnu : {name}. Outils disponibles : {', '.join(self._tools)}"
-        if tool.dangerous and confirm is not None and not confirm(name, arguments):
-            return f"L'utilisateur a refusé l'exécution de {name}. Propose une autre approche ou demande-lui pourquoi."
+        if tool.dangerous:
+            from .shell import is_destructive
+
+            if name == "run_command" and confirm is None and is_destructive(str(arguments.get("command", ""))):
+                return ("Commande refusée : elle est potentiellement destructrice (suppression hors du projet, "
+                        "réécriture d'historique git, arrêt de la machine) et personne n'est là pour la valider. "
+                        "Trouve une approche qui reste dans le projet.")
+            if confirm is not None and not confirm(name, arguments):
+                return f"L'utilisateur a refusé l'exécution de {name}. Propose une autre approche ou demande-lui pourquoi."
         path = str(arguments.get("path", "")) if isinstance(arguments, dict) else ""
         if name == "write_file" and path:
             target = root / path

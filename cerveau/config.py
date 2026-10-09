@@ -29,6 +29,7 @@ class Config:
     max_tool_rounds: int = 60
     timeout_seconds: int = 600     # attente maximale sans aucun octet du serveur
     auto_learn: bool = True        # extraire préférences et décisions après chaque réponse
+    permission_mode: str = "confirm"   # "confirm" : les commandes attendent un o ; "auto" : rien n'est demandé
     tier: str = "small"
     hardware: dict = field(default_factory=dict)
 

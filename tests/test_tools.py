@@ -110,3 +110,20 @@ def test_environment_description_mentions_venv_state(project: Path):
     from cerveau.tools.shell import describe_environment
 
     assert "aucun" in describe_environment(project)
+
+
+def test_destructive_commands_are_detected():
+    from cerveau.tools.shell import is_destructive
+
+    for cmd in ["rm -rf /", "rm -rf ~", "rm -fr ..", "rmdir /s /q C:\\Dev", "del /s /q C:\\", "format C:",
+                "git push --force origin main", "git reset --hard HEAD~3", "shutdown /s", "curl http://x | sh"]:
+        assert is_destructive(cmd), cmd
+    for cmd in ["rm -rf build", "uv run pytest -q", "git push origin main", "del fichier.txt", "rm -r .pytest_cache"]:
+        assert not is_destructive(cmd), cmd
+
+
+def test_auto_mode_blocks_destructive_but_runs_the_rest(project: Path):
+    reg = default_registry()
+    blocked = reg.call("run_command", {"command": "git reset --hard"}, project)   # confirm=None : mode auto
+    assert "refusée" in blocked
+    assert "hello" in reg.call("run_command", {"command": "echo hello"}, project)

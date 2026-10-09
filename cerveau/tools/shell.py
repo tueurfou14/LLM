@@ -85,6 +85,31 @@ def _oem_codepage() -> str | None:
         return None
 
 
+import re
+
+DESTRUCTIVE = [
+    r"\brm\s+(-\w*r\w*\s+|-\w*f\w*\s+)+(/|~|\$HOME|\.\.|[A-Za-z]:\\?)(\s|$)",   # rm -rf / ~ .. C:\
+    r"\brmdir\s+/s",                       # rmdir /s (Windows)
+    r"\bdel\s+.*(/s|/q).*\b[A-Za-z]:\\",  # del /s C:\
+    r"remove-item\s+.*-recurse.*(\\|/)?([A-Za-z]:\\?|~|\$home)(\s|$)",
+    r"\bformat\s+[A-Za-z]:",
+    r"\bmkfs\b", r"\bdiskpart\b", r"\bdd\s+if=",
+    r"\bshutdown\b", r"\breboot\b", r"\bhalt\b",
+    r"git\s+push\s+.*(--force|-f)\b", r"git\s+reset\s+--hard", r"git\s+clean\s+-\w*f",
+    r":\(\)\s*\{\s*:\|:&\s*\};:",         # fork bomb
+    r"\bcurl\b.*\|\s*(ba)?sh\b", r"\biex\b.*downloadstring",   # exécution de script distant
+]
+
+
+def is_destructive(command: str) -> str | None:
+    """Renvoie le motif reconnu si la commande peut détruire des données hors du projet."""
+    low = command.lower()
+    for pattern in DESTRUCTIVE:
+        if re.search(pattern, low):
+            return pattern
+    return None
+
+
 def run_command(root: Path, command: str, timeout: int = 300) -> str:
     """Lance une commande shell dans le dossier du projet et renvoie sa sortie."""
     try:

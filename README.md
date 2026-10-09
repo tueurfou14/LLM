@@ -151,6 +151,16 @@ relancer Ollama.
   compteurs signale une estimation, quand le serveur ne fournit pas `usage` ;
 - à la sortie, un bilan de la session avec les fichiers touchés.
 
+Deux modes de permission, `cerveau chat --mode auto` ou `/mode auto` dans la
+console, enregistré dans la config :
+
+- **confirm** (défaut) : chaque commande attend votre `o`, les écritures de
+  fichiers sont libres ;
+- **auto** : rien n'est demandé. Un garde-fou refuse quand même les commandes
+  potentiellement destructrices hors du projet : suppression de la racine ou
+  du dossier personnel, formatage, arrêt de la machine, `git push --force`,
+  `git reset --hard`, script distant exécuté à la volée.
+
 Saisie : flèches haut/bas pour l'historique, Tab complète les commandes,
 Alt+Entrée ajoute une ligne. Commandes : `/help`, `/note`, `/memory`,
 `/model [nom]`, `/skills`, `/files`, `/audit`, `/verbose`, `/clear`, `/stats`,

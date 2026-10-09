@@ -142,8 +142,11 @@ def _project_root(args: argparse.Namespace) -> Path:
 
 def _agent(args: argparse.Namespace) -> Agent:
     cfg = config.load()
+    if getattr(args, "mode", None):
+        cfg.permission_mode = args.mode
     root = _project_root(args)
-    return Agent(cfg, root, on_token=_print_token, on_tool=_print_tool, confirm=_confirm)
+    confirm = None if cfg.permission_mode == "auto" else _confirm
+    return Agent(cfg, root, on_token=_print_token, on_tool=_print_tool, confirm=confirm)
 
 
 def cmd_chat(args: argparse.Namespace) -> int:
@@ -154,6 +157,8 @@ def cmd_chat(args: argparse.Namespace) -> int:
             console = None  # type: ignore[assignment]
         if console is not None:
             cfg = config.load()
+            if args.mode:
+                cfg.permission_mode = args.mode
             root = _project_root(args)
             return console.run(cfg, root)
     agent = _agent(args)
@@ -315,6 +320,7 @@ def main(argv: list[str] | None = None) -> int:
         p = sub.add_parser(name, help=help_)
         p.add_argument("project", nargs="?", default=".")
         p.add_argument("--plain", action="store_true", help="mode texte simple, sans la console rich")
+        p.add_argument("--mode", choices=("confirm", "auto"), help="auto : aucune confirmation demandée")
         p.set_defaults(fn=fn)
 
     p = sub.add_parser("memory", help="affiche les souvenirs d'un projet")
