@@ -28,6 +28,7 @@ class Config:
     max_memories: int = 6
     max_tool_rounds: int = 60
     timeout_seconds: int = 600     # attente maximale sans aucun octet du serveur
+    auto_learn: bool = True        # extraire préférences et décisions après chaque réponse
     tier: str = "small"
     hardware: dict = field(default_factory=dict)
 

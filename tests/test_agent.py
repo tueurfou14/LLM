@@ -25,7 +25,7 @@ class FakeClient:
 
 def make_agent(tmp_path, replies):
     (tmp_path / "main.py").write_text("x = 1\n")
-    cfg = Config(model="fake")
+    cfg = Config(model="fake", auto_learn=False)
     store = MemoryStore(tmp_path / "mem.sqlite")
     return Agent(cfg, tmp_path, client=FakeClient(replies), store=store)
 
@@ -149,3 +149,34 @@ def test_timeout_becomes_llm_error():
     with pytest.raises(LLMError, match="n'a rien envoyé"):
         list(client.chat_events("m", [{"role": "user", "content": "x"}]))
     srv.shutdown()
+
+
+def test_auto_learn_stores_preferences_globally_and_facts_in_project(tmp_path):
+    learned = []
+    agent = make_agent(tmp_path, [
+        Reply(content="D'accord, je ferai toujours des tests."),
+        Reply(content="global | preference | Il veut des tests pytest sur chaque module\n"
+                      "projet | decision | La base est SQLite\n"
+                      "n'importe quoi sans séparateur"),
+    ])
+    agent.on_learned = lambda *a: learned.append(a)
+    agent.config.auto_learn = True
+    agent.ask("fais toujours des tests pytest, et on reste sur SQLite ici")
+    from cerveau.memory import GLOBAL
+    assert agent.store.count(GLOBAL) == 1
+    assert agent.store.count(agent.project) == 2   # l'épisode + la décision
+    assert learned[0][0] == "global" and "Décision" in learned[1][2]
+
+
+def test_auto_learn_rien_stores_nothing_extra(tmp_path):
+    agent = make_agent(tmp_path, [Reply(content="ok"), Reply(content="RIEN")])
+    agent.config.auto_learn = True
+    agent.ask("bonjour")
+    assert agent.store.count(agent.project) == 1
+
+
+def test_auto_learn_can_be_disabled(tmp_path):
+    agent = make_agent(tmp_path, [Reply(content="ok")])
+    agent.config.auto_learn = False
+    agent.ask("bonjour")
+    assert agent.client.replies == []   # aucun second appel n'a été consommé

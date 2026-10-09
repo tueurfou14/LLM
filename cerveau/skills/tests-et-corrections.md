@@ -3,7 +3,7 @@ mots-clés: test, tests, pytest, tester, bug, erreur, corriger, réparer, plante
 description: Reproduire un problème, le corriger et prouver la correction par un test.
 
 Procédure :
-1. Reproduis d'abord : lance la commande qui échoue avec `run_command` (souvent `pytest -q` ou le script concerné). Lis la trace complète.
+1. Reproduis d'abord : lance la commande qui échoue avec `run_command` (souvent `uv run pytest -q` ou `uv run python <script>`). Lis la trace complète.
 2. Localise : `search_code` sur le nom de la fonction ou le message d'erreur, puis `read_file` sur le fichier en cause. Ne modifie rien avant d'avoir lu le code.
 3. Explique la cause en une ou deux phrases avant de corriger.
 4. Corrige avec `edit_file`, en changeant le minimum nécessaire.

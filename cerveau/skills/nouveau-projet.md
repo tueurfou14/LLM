@@ -14,7 +14,7 @@ Procédure :
    - un dossier source avec le nom du projet, contenant `__init__.py`.
    - un dossier `tests/` avec un premier test qui passe.
 4. Écris un premier module qui fonctionne réellement, pas un fichier vide. Pour un ERP : commence par le module le plus central, souvent les clients ou les produits, avec son modèle de données, ses opérations de base et ses tests.
-5. Propose `run_command` pour installer les dépendances puis lancer les tests. Attends la confirmation de l'utilisateur.
+5. Propose `run_command` pour créer l'environnement et installer, puis lancer les tests. Pour Python, dans cet ordre : `uv venv`, puis `uv pip install -e .` (ou `uv pip install -r requirements.txt`), puis `uv run pytest -q`. Jamais `pip` seul : il n'existe pas dans l'environnement. Attends la confirmation de l'utilisateur à chaque commande.
 6. Termine par un résumé : ce qui existe, comment le lancer, et les trois prochaines étapes que tu proposes.
 
 Un projet complet se construit module par module. Ne tente jamais de tout écrire en une seule réponse : fais une étape solide, vérifie-la, puis demande à l'utilisateur s'il veut continuer avec la suivante.

@@ -18,8 +18,9 @@ from pathlib import Path
 from . import skills as skills_mod
 from .config import HOME, Config
 from .llm import Client, Reply, ToolCall
-from .memory import MemoryStore
+from .memory import GLOBAL, MemoryStore
 from .tools import Registry, default_registry
+from .tools.shell import describe_environment
 
 SYSTEM_PROMPT = """Tu es Cerveau, un développeur senior et auditeur de sécurité. Tu travailles dans le dossier du projet « {project} », qui est ta racine : tous les chemins sont relatifs à ce dossier.
 
@@ -27,6 +28,9 @@ Tu disposes des outils suivants, à appeler via le mécanisme d'appel d'outils (
 {tools}
 
 Utilise-les : tu agis, tu ne te contentes pas de décrire. Tu ne peux pas écrire en dehors de la racine du projet ; si l'utilisateur veut travailler ailleurs, dis-lui de relancer « cerveau chat <dossier> ».
+
+Environnement d'exécution : {environment}.
+Pour un projet Python : crée l'environnement une fois avec « uv venv », installe avec « uv pip install -e . » ou « uv pip install <paquet> », lance avec « uv run pytest -q » ou « uv run python … ». N'utilise jamais « pip » seul. Ne lance les scanners de sécurité que si l'utilisateur demande un audit.
 
 Méthode :
 - Pour une tâche de code, annonce en deux lignes ce que tu vas faire, puis crée ou modifie les fichiers avec write_file et edit_file. Un projet complet se construit par étapes : commence par la structure et un premier module qui fonctionne, puis étends. Ne demande pas de permission pour écrire dans le projet.
@@ -39,6 +43,17 @@ Méthode :
 Souvenirs pertinents sur ce projet :
 {memories}
 """
+LEARN_PROMPT = """Voici un échange entre un utilisateur et son assistant de code.
+
+Utilisateur : {question}
+Assistant : {answer}
+
+Extrais ce qui mérite d'être retenu durablement, et rien d'autre : une préférence de l'utilisateur, une décision prise sur le projet, une convention à respecter. Ignore le contenu temporaire, les détails de code et les salutations. S'il n'y a rien à retenir, réponds exactement : RIEN.
+
+Sinon, une ligne par élément, au format :
+PORTEE | TYPE | phrase courte à la troisième personne
+où PORTEE vaut « global » si cela vaut pour tous ses projets (goûts, outils, langue, façon de travailler) ou « projet » si c'est propre à ce projet, et TYPE vaut « preference », « fact » ou « decision ». Trois lignes au maximum."""
+
 MAX_TOOL_ROUNDS = 60   # tours modèle+outils par réponse ; surchargé par config.max_tool_rounds
 RESERVE_TOKENS = 2048  # place gardée pour la réponse du modèle
 KEEP_RECENT_TOOL_RESULTS = 6
@@ -68,7 +83,8 @@ class Agent:
                  on_tool: Callable[[str, dict, str], None] | None = None,
                  confirm: Callable[[str, dict], bool] | None = None,
                  on_tool_start: Callable[[str, dict], None] | None = None,
-                 on_thinking: Callable[[str], None] | None = None):
+                 on_thinking: Callable[[str], None] | None = None,
+                 on_learned: Callable[[str, str, str], None] | None = None):
         self.config = config
         self.root = project_root.resolve()
         self.project = self.root.name
@@ -81,6 +97,7 @@ class Agent:
         self.confirm = confirm
         self.on_tool_start = on_tool_start
         self.on_thinking = on_thinking
+        self.on_learned = on_learned
         self.history: list[dict] = []
         self.last_stats = TurnStats()
         self.skills = skills_mod.load_all([HOME / "skills"])
@@ -107,7 +124,8 @@ class Agent:
                 print(f"[debug] skills : {', '.join(s.name for s in chosen)}", file=sys.stderr)
         tools_text = "\n".join(f"- {t['function']['name']} : {t['function']['description']}"
                                for t in self.registry.schemas())
-        return SYSTEM_PROMPT.format(project=self.project, tools=tools_text, skills=skills_text, memories=text)
+        return SYSTEM_PROMPT.format(project=self.project, tools=tools_text, skills=skills_text, memories=text,
+                                    environment=describe_environment(self.root))
 
     # --- boucle ---------------------------------------------------------------
 
@@ -164,7 +182,40 @@ class Agent:
 
         if remember and final_text:
             self.store.remember(self.project, f"Question : {user_message[:300]}\nRéponse : {final_text[:600]}")
+            if getattr(self.config, "auto_learn", True):
+                self.learn(user_message, final_text)
         return final_text
+
+    def learn(self, question: str, answer: str) -> list[tuple[str, str, str]]:
+        """Demande au modèle ce qui mérite d'être retenu et l'enregistre.
+        Renvoie les (portée, type, contenu) retenus. Jamais bloquant : une erreur
+        est ignorée, la réponse principale a déjà été rendue."""
+        prompt = LEARN_PROMPT.format(question=question[:1500], answer=answer[:2500])
+        try:
+            reply = self.client.chat(self.config.model, [{"role": "user", "content": prompt}],
+                                     temperature=0.0, max_tokens=200)
+        except Exception:  # noqa: BLE001
+            return []
+        learned = []
+        for line in (reply.content or "").splitlines():
+            parts = [x.strip() for x in line.split("|")]
+            if len(parts) != 3 or not parts[2] or parts[2].upper() == "RIEN":
+                continue
+            scope, kind, content = parts[0].lower(), parts[1].lower(), parts[2]
+            if kind not in ("preference", "fact", "decision"):
+                continue
+            project = GLOBAL if scope.startswith("glob") else self.project
+            stored_kind = "preference" if kind == "preference" else "fact"
+            if kind == "decision":
+                content = "Décision : " + content
+            try:
+                self.store.remember(project, content, kind=stored_kind)
+            except ValueError:
+                continue
+            learned.append((scope, kind, content))
+            if self.on_learned:
+                self.on_learned(scope, kind, content)
+        return learned
 
     def _round(self, messages: list[dict], tools: list[dict], stats: TurnStats) -> Reply:
         """Un appel au modèle, en streaming si le client le permet. Les tokens

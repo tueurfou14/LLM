@@ -8,22 +8,94 @@ le registre appelle la fonction de confirmation parce que l'outil est marqué
 
 from __future__ import annotations
 
+import os
+import platform
+import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 from .registry import Tool, truncate
 
 
+def project_venv(root: Path) -> Path | None:
+    """L'environnement virtuel du projet, s'il existe."""
+    for name in (".venv", "venv", "env"):
+        candidate = root / name
+        bindir = candidate / ("Scripts" if os.name == "nt" else "bin")
+        if (bindir / ("python.exe" if os.name == "nt" else "python")).exists():
+            return candidate
+    return None
+
+
+def command_env(root: Path) -> dict[str, str]:
+    """Environnement des commandes : celui du projet, pas celui du cerveau.
+    L'env virtuel du projet passe en tête du PATH ; celui du cerveau est retiré."""
+    env = dict(os.environ)
+    sep = os.pathsep
+    paths = env.get("PATH", "").split(sep)
+    own_venv = env.pop("VIRTUAL_ENV", None)
+    if own_venv:
+        own_bin = str(Path(own_venv) / ("Scripts" if os.name == "nt" else "bin"))
+        paths = [p for p in paths if os.path.normcase(p) != os.path.normcase(own_bin)]
+    venv = project_venv(root)
+    if venv:
+        bindir = venv / ("Scripts" if os.name == "nt" else "bin")
+        paths.insert(0, str(bindir))
+        env["VIRTUAL_ENV"] = str(venv)
+    env["PATH"] = sep.join(paths)
+    env.setdefault("PYTHONIOENCODING", "utf-8")
+    env.setdefault("PYTHONUTF8", "1")
+    return env
+
+
+def describe_environment(root: Path) -> str:
+    """Résumé pour la consigne du modèle : ce qu'il peut utiliser pour exécuter du code."""
+    venv = project_venv(root)
+    parts = [
+        f"système {platform.system()} {platform.release()}",
+        f"shell {'PowerShell/cmd' if os.name == 'nt' else 'sh'}",
+        f"uv {'disponible' if shutil.which('uv') else 'absent'}",
+        f"python {platform.python_version()} ({'uv' if shutil.which('uv') else sys.executable})",
+        f"environnement virtuel du projet : {venv.name if venv else 'aucun (crée-le avec « uv venv »)'}",
+        f"docker {'disponible' if shutil.which('docker') else 'absent'}",
+    ]
+    return ", ".join(parts)
+
+
+def _decode(data: bytes) -> str:
+    for encoding in ("utf-8", _oem_codepage(), "cp1252"):
+        if not encoding:
+            continue
+        try:
+            return data.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+    return data.decode("utf-8", "replace")
+
+
+def _oem_codepage() -> str | None:
+    if os.name != "nt":
+        return None
+    try:
+        import ctypes
+
+        return f"cp{ctypes.windll.kernel32.GetOEMCP()}"  # type: ignore[attr-defined]
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def run_command(root: Path, command: str, timeout: int = 300) -> str:
     """Lance une commande shell dans le dossier du projet et renvoie sa sortie."""
     try:
-        proc = subprocess.run(command, shell=True, cwd=root, capture_output=True, text=True,  # noqa: S602
-                              timeout=min(int(timeout), 1800), errors="replace")
+        proc = subprocess.run(command, shell=True, cwd=root, capture_output=True,  # noqa: S602
+                              timeout=min(int(timeout), 1800), env=command_env(root))
     except subprocess.TimeoutExpired:
         return f"commande interrompue après {timeout} s : {command}"
-    out = proc.stdout
-    if proc.stderr:
-        out += ("\n[stderr]\n" if out else "[stderr]\n") + proc.stderr
+    out = _decode(proc.stdout)
+    err = _decode(proc.stderr)
+    if err:
+        out += ("\n[stderr]\n" if out else "[stderr]\n") + err
     header = f"code de sortie {proc.returncode}\n"
     return truncate(header + (out or "(aucune sortie)"))
 

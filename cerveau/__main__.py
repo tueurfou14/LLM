@@ -26,7 +26,7 @@ from . import __version__, config, hardware, skills as skills_mod
 from .agent import Agent
 from . import ollama
 from .llm import Client, LLMError
-from .memory import MemoryStore
+from .memory import GLOBAL, MemoryStore
 
 AUDIT_PROMPT = (
     "Fais un audit de sécurité de ce projet. Commence par scanners_status, puis lance les scanners "
@@ -213,8 +213,10 @@ def cmd_note(args: argparse.Namespace) -> int:
     project = Path(args.project).resolve().name
     client = Client(cfg.base_url, cfg.api_key)
     store = MemoryStore(cfg.db_path, embedder=lambda t: client.embed(cfg.embedding_model, t))
-    mid = store.remember(project, " ".join(args.text), kind="fact")
-    print(f"souvenir {mid} enregistré pour « {project} »")
+    if args.global_scope:
+        project = GLOBAL
+    mid = store.remember(project, " ".join(args.text), kind="preference" if args.global_scope else "fact")
+    print(f"souvenir {mid} enregistré pour « {'tous les projets' if args.global_scope else project} »")
     return 0
 
 
@@ -323,6 +325,7 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("note", help="ajoute un souvenir")
     p.add_argument("project")
     p.add_argument("text", nargs="+")
+    p.add_argument("--global", dest="global_scope", action="store_true", help="valable pour tous les projets")
     p.set_defaults(fn=cmd_note)
 
     p = sub.add_parser("model", help="affiche ou change le modèle principal")

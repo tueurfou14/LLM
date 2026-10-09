@@ -103,6 +103,21 @@ la fois. Trois mécanismes la gèrent :
 - **Mémoire de projet** : ce qui a été décidé et fait est mémorisé dans SQLite
   et rappelé selon la demande, même après `/clear` ou un redémarrage.
 
+## Apprentissage
+
+Après chaque réponse, le cerveau demande au modèle ce qui mérite d'être
+retenu durablement : une préférence de l'utilisateur, une décision, une
+convention. Une préférence est rangée dans la mémoire globale et suit
+l'utilisateur sur tous ses projets ; une décision reste dans le projet. Les
+doublons sont fusionnés. La console affiche chaque élément retenu
+(`✎ retenu`), `/memory` liste les souvenirs du projet et les globaux,
+`/forget <id>` en supprime un, `/note global …` en ajoute un à la main.
+`auto_learn: false` dans la config désactive l'extraction.
+
+Ce n'est pas un apprentissage dans les poids du modèle : le modèle ne change
+pas, c'est sa mémoire externe qui s'enrichit et lui est rappelée à chaque
+demande.
+
 Ordres de grandeur du cache de contexte, en plus du modèle lui-même :
 
 | Modèle | 16k tokens | 32k tokens |
@@ -125,7 +140,10 @@ relancer Ollama.
 - un fichier créé est montré avec coloration syntaxique, un fichier modifié
   avec son diff avant/après ;
 - une commande que le modèle veut exécuter est affichée et attend votre `o` ;
-  si elle échoue, sa sortie est montrée ;
+  si elle échoue, sa sortie est montrée. Les commandes tournent dans
+  l'environnement virtuel du projet (`.venv`) s'il existe, jamais dans celui
+  du cerveau ; la consigne pousse le modèle vers `uv venv`, `uv pip install`
+  et `uv run` ;
 - la réflexion des modèles qui raisonnent est repliée en une ligne,
   dépliable avec `/verbose` ;
 - après chaque réponse : tokens de contexte, tokens générés, débit, durée,

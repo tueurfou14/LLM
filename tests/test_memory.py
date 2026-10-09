@@ -75,3 +75,20 @@ def test_forget(store):
 def test_empty_memory_rejected(store):
     with pytest.raises(ValueError):
         store.remember("proj", "   ")
+
+
+def test_facts_are_deduplicated_but_episodes_are_not(store):
+    a = store.remember("proj", "Le projet utilise Docker pour les tests", kind="fact")
+    b = store.remember("proj", "le projet utilise docker pour les tests", kind="fact")
+    assert a == b and store.count("proj") == 1
+    store.remember("proj", "même épisode")
+    store.remember("proj", "même épisode")
+    assert store.count("proj") == 3
+
+
+def test_global_memories_are_recalled_with_project_ones(store):
+    from cerveau.memory import GLOBAL
+    store.remember(GLOBAL, "L'utilisateur préfère Python avec des tests pytest", kind="preference")
+    store.remember("proj", "Injection SQL trouvée dans login.py")
+    hits = store.recall("proj", "python injection sql")
+    assert {h.project for h in hits} == {"proj", GLOBAL}

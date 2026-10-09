@@ -16,7 +16,7 @@ Règles :
 - Jamais de SQL brut construit par concaténation : utilise l'ORM ou des requêtes paramétrées.
 - Les identifiants sont des entiers auto-incrémentés ; renvoie 404 quand un objet n'existe pas.
 - Chaque routeur ajouté est testé : au minimum création, lecture, et un cas d'erreur.
-- Après écriture, propose `run_command` avec `pytest -q` et corrige ce qui échoue avant de passer à la suite.
+- Après écriture, propose `run_command` avec `uv run pytest -q` et corrige ce qui échoue avant de passer à la suite.
 
-Dépendances minimales : `fastapi`, `uvicorn`, `sqlalchemy`, `pydantic`, `pytest`, `httpx`.
-Lancement : `uvicorn <paquet>.main:app --reload`.
+Dépendances minimales : `fastapi`, `uvicorn`, `sqlalchemy`, `pydantic`, `pytest`, `httpx`, déclarées dans `pyproject.toml`.
+Installation : `uv venv` une fois, puis `uv pip install -e .`. Lancement : `uv run uvicorn <paquet>.main:app --reload`.

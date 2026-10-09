@@ -1,8 +1,12 @@
 """Mémoire de projet dans SQLite, avec recherche vectorielle et textuelle.
 
-Deux types de souvenirs :
-  - "episode"  : ce qui s'est passé (question, décision, faille trouvée, correctif)
-  - "fact"     : connaissance stable sur le projet (convention, architecture)
+Types de souvenirs :
+  - "episode"     : ce qui s'est passé (question, décision, faille trouvée, correctif)
+  - "fact"        : connaissance stable sur le projet (convention, architecture)
+  - "preference"  : ce que l'utilisateur aime ou refuse (style, outils, langue)
+
+Le projet GLOBAL ("*") contient ce qui vaut pour tous les projets, typiquement
+les préférences. Le rappel mêle les souvenirs du projet et les globaux.
 
 La recherche combine la similarité cosinus sur les embeddings et, à défaut
 d'embeddings, la recherche plein texte FTS5. Pas de dépendance externe : pour
@@ -20,6 +24,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 Embedder = Callable[[list[str]], list[list[float]]]
+GLOBAL = "*"
+DUPLICATE_THRESHOLD = 0.92
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS memories (
@@ -75,15 +81,26 @@ class MemoryStore:
     # --- écriture -------------------------------------------------------------
 
     def remember(self, project: str, content: str, kind: str = "episode") -> int:
+        """Enregistre un souvenir. Un fait ou une préférence quasi identique à un
+        souvenir existant du même projet n'est pas dupliqué : on renvoie l'ancien."""
         content = content.strip()
         if not content:
             raise ValueError("souvenir vide")
         embedding = None
+        vector = None
         if self.embedder:
             try:
-                embedding = json.dumps(self.embedder([content])[0])
+                vector = self.embedder([content])[0]
+                embedding = json.dumps(vector)
             except Exception:  # noqa: BLE001 - la mémoire doit marcher même sans embeddings
                 embedding = None
+        if kind != "episode":
+            existing = self._find_duplicate(project, kind, content, vector)
+            if existing is not None:
+                self.conn.execute("UPDATE memories SET last_used = ?, uses = uses + 1 WHERE id = ?",
+                                  (time.time(), existing))
+                self.conn.commit()
+                return existing
         cur = self.conn.execute(
             "INSERT INTO memories(project, kind, content, embedding, created_at) VALUES (?,?,?,?,?)",
             (project, kind, content, embedding, time.time()),
@@ -91,16 +108,34 @@ class MemoryStore:
         self.conn.commit()
         return int(cur.lastrowid)
 
+    def _find_duplicate(self, project: str, kind: str, content: str, vector: list[float] | None) -> int | None:
+        rows = self.conn.execute(
+            "SELECT id, content, embedding FROM memories WHERE project = ? AND kind = ?", (project, kind)
+        ).fetchall()
+        folded = content.lower()
+        for row in rows:
+            if row["content"].lower() == folded:
+                return int(row["id"])
+            if vector is not None and row["embedding"]:
+                if _cosine(vector, json.loads(row["embedding"])) >= DUPLICATE_THRESHOLD:
+                    return int(row["id"])
+        return None
+
     def forget(self, memory_id: int) -> None:
         self.conn.execute("DELETE FROM memories WHERE id = ?", (memory_id,))
         self.conn.commit()
 
     # --- lecture --------------------------------------------------------------
 
-    def recall(self, project: str, query: str, limit: int = 6) -> list[Memory]:
+    def recall(self, project: str, query: str, limit: int = 6, include_global: bool = True) -> list[Memory]:
         results = self._recall_vector(project, query, limit) if self.embedder else []
         if not results:
             results = self._recall_fts(project, query, limit)
+        if include_global and project != GLOBAL:
+            extra = self._recall_vector(GLOBAL, query, limit) if self.embedder else []
+            if not extra:
+                extra = self._recall_fts(GLOBAL, query, limit)
+            results = (results + extra)[: limit + 3]
         if results:
             ids = [m.id for m in results]
             self.conn.execute(

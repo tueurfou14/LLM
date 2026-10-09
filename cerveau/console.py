@@ -24,12 +24,14 @@ from rich.text import Text
 from . import __version__, config, skills as skills_mod
 from .agent import Agent, TurnStats
 from .llm import Client, LLMError
+from .memory import GLOBAL
 
 COMMANDS = {
     "/help": "cette aide",
     "/quit": "quitter (bilan de la session)",
-    "/note": "texte : mémoriser un fait sur le projet",
-    "/memory": "derniers souvenirs du projet",
+    "/note": "texte : mémoriser un fait sur le projet ; « /note global … » pour tous les projets",
+    "/memory": "derniers souvenirs du projet et globaux",
+    "/forget": "id : supprimer un souvenir",
     "/model": "[nom] : afficher ou changer le modèle",
     "/skills": "procédures disponibles",
     "/files": "fichiers touchés pendant la session",
@@ -74,7 +76,8 @@ class ChatConsole:
         self.session_tools = 0
         self.session_started = time.perf_counter()
         self.agent = Agent(cfg, root, on_token=self._on_token, on_thinking=self._on_thinking,
-                           on_tool_start=self._on_tool_start, on_tool=self._on_tool, confirm=self._confirm)
+                           on_tool_start=self._on_tool_start, on_tool=self._on_tool, confirm=self._confirm,
+                           on_learned=self._on_learned)
         self.session = _make_prompt_session()
 
     # --- gestion des affichages vivants -----------------------------------------
@@ -126,6 +129,10 @@ class ChatConsole:
             self.thinking = []
 
     # --- callbacks de l'agent ------------------------------------------------------
+
+    def _on_learned(self, scope: str, kind: str, content: str) -> None:
+        where = "partout" if scope.startswith("glob") else "ce projet"
+        self.out.print(Text.assemble(("  ✎ retenu ", "magenta"), (f"({where}) ", "dim"), (content, "dim")))
 
     def _on_thinking(self, text: str) -> None:
         if not self.thinking:
@@ -272,11 +279,21 @@ class ChatConsole:
             table.add_row("", "Ctrl+C pendant une réponse l'interrompt.")
             self.out.print(Panel(table, border_style="dim"))
         elif cmd == "/note" and rest:
-            self.agent.note(rest)
-            self.out.print("  [green]souvenir enregistré[/]")
+            if rest.startswith("global "):
+                self.agent.store.remember(GLOBAL, rest[7:], kind="preference")
+                self.out.print("  [green]préférence enregistrée pour tous les projets[/]")
+            else:
+                self.agent.note(rest)
+                self.out.print("  [green]souvenir enregistré pour ce projet[/]")
         elif cmd == "/memory":
-            for m in self.agent.store.recent(self.agent.project, limit=10):
-                self.out.print(f"  [dim][{m.id}] ({m.kind})[/] {m.content[:160].replace(chr(10), ' ')}")
+            for label, project in (("ce projet", self.agent.project), ("global", GLOBAL)):
+                items = self.agent.store.recent(project, limit=10)
+                self.out.print(f"  [bold]{label}[/] : {self.agent.store.count(project)} souvenir(s)")
+                for m in items:
+                    self.out.print(f"    [dim][{m.id}] ({m.kind})[/] {m.content[:150].replace(chr(10), ' ')}")
+        elif cmd == "/forget" and rest.isdigit():
+            self.agent.store.forget(int(rest))
+            self.out.print(f"  souvenir {rest} supprimé")
         elif cmd == "/model":
             if rest:
                 self.cfg.model = rest

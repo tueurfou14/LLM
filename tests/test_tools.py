@@ -88,3 +88,25 @@ def test_write_file_requires_reading_existing_file_first(project: Path):
     assert "remplacé" in reg.call("write_file", {"path": "app.py", "content": "x"}, project)
     # un fichier nouveau s'écrit sans lecture préalable
     assert "créé" in reg.call("write_file", {"path": "new.py", "content": "y"}, project)
+
+
+def test_command_env_prefers_project_venv(project: Path, monkeypatch):
+    import os
+    from cerveau.tools.shell import command_env, project_venv
+
+    assert project_venv(project) is None
+    bindir = project / ".venv" / ("Scripts" if os.name == "nt" else "bin")
+    bindir.mkdir(parents=True)
+    (bindir / ("python.exe" if os.name == "nt" else "python")).write_text("")
+    monkeypatch.setenv("VIRTUAL_ENV", "/opt/cerveau-venv")
+    monkeypatch.setenv("PATH", "/opt/cerveau-venv/bin" + os.pathsep + "/usr/bin")
+    env = command_env(project)
+    assert env["PATH"].split(os.pathsep)[0] == str(bindir)
+    assert "/opt/cerveau-venv/bin" not in env["PATH"]
+    assert env["VIRTUAL_ENV"] == str(project / ".venv")
+
+
+def test_environment_description_mentions_venv_state(project: Path):
+    from cerveau.tools.shell import describe_environment
+
+    assert "aucun" in describe_environment(project)
