@@ -24,6 +24,12 @@ def normalize_relative(root: Path, raw: str) -> str:
         text = text[len(root_posix):]
     elif ":" in text[:3] or text.startswith("//"):
         raise PermissionError(f"chemin hors du projet : {raw}")
+    elif text.startswith("/"):
+        # « /garage/x.py » veut dire « depuis la racine du projet » ; mais « /home/... » ou
+        # « /Users/... » est un vrai chemin absolu hors du projet.
+        first = text.strip("/").split("/", 1)[0]
+        if first and Path("/" + first).is_dir():
+            raise PermissionError(f"chemin hors du projet : {raw}")
     text = re.sub(r"^(\./)+", "", text).lstrip("/")
     # Nom du projet répété en tête, à la casse exacte, alors que ce dossier n'existe pas.
     # (« garage/models.py » en minuscules reste un paquet Python légitime du projet « Garage ».)
