@@ -63,6 +63,7 @@ cerveau model qwen3-coder:30b   # change de modèle principal
 cerveau use lmstudio         # bascule le serveur (ollama ou lmstudio)
 cerveau bench qwen2.5-coder:7b qwen3-coder:30b   # compare les débits réels
 cerveau skills               # procédures disponibles
+cerveau context 32768        # taille de contexte, variante Ollama créée au besoin
 ```
 
 `CERVEAU_DEBUG=1` affiche les skills retenus et les réponses brutes du modèle,
@@ -84,6 +85,34 @@ lit, crée et modifie des fichiers uniquement dedans. S'il n'existe pas,
 La configuration est écrite au premier lancement dans `~/.cerveau/config.json`.
 Les variables `CERVEAU_BASE_URL`, `CERVEAU_MODEL` et `CERVEAU_EMBEDDING_MODEL`
 la surchargent.
+
+## Contexte et longues sessions
+
+Il n'y a aucun quota : tout tourne en local. La seule limite est la fenêtre
+de contexte du modèle, c'est-à-dire la quantité de conversation qu'il voit à
+la fois. Trois mécanismes la gèrent :
+
+- **`cerveau context 32768`** fixe la taille. Avec Ollama, la commande crée
+  une variante du modèle (`qwen3-coder:30b-ctx32k`) servie avec ce contexte,
+  car Ollama applique sinon son défaut, souvent 4096, et tronque en silence.
+  `cerveau check` avertit quand c'est le cas.
+- **Compaction automatique** : avant chaque appel, la conversation est ramenée
+  sous le budget en raccourcissant les anciens résultats d'outils puis en
+  retirant les plus vieux échanges. La consigne et le dernier message restent
+  toujours entiers.
+- **Mémoire de projet** : ce qui a été décidé et fait est mémorisé dans SQLite
+  et rappelé selon la demande, même après `/clear` ou un redémarrage.
+
+Ordres de grandeur du cache de contexte, en plus du modèle lui-même :
+
+| Modèle | 16k tokens | 32k tokens |
+|---|---|---|
+| Qwen2.5-Coder 7B | 0,9 Go | 1,8 Go |
+| Qwen3-Coder 30B-A3B | 1,6 Go | 3,2 Go |
+
+Deux variables d'environnement d'Ollama réduisent ce coût de moitié :
+`OLLAMA_FLASH_ATTENTION=1` et `OLLAMA_KV_CACHE_TYPE=q8_0`, à définir avant de
+relancer Ollama.
 
 ## Console
 

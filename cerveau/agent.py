@@ -40,6 +40,8 @@ Souvenirs pertinents sur ce projet :
 {memories}
 """
 MAX_TOOL_ROUNDS = 60   # tours modèle+outils par réponse ; surchargé par config.max_tool_rounds
+RESERVE_TOKENS = 2048  # place gardée pour la réponse du modèle
+KEEP_RECENT_TOOL_RESULTS = 6
 
 
 @dataclass
@@ -119,6 +121,7 @@ class Agent:
         limit = getattr(self.config, "max_tool_rounds", MAX_TOOL_ROUNDS) or MAX_TOOL_ROUNDS
         for _ in range(limit):
             stats.rounds += 1
+            compact_messages(messages, self.config.context_tokens - RESERVE_TOKENS)
             reply = self._round(messages, tools, stats)
             if self.debug:
                 print(f"[debug] réponse brute : {reply!r}"[:1500], file=sys.stderr)
@@ -199,6 +202,43 @@ class Agent:
     def note(self, content: str, kind: str = "fact") -> int:
         """Ajoute un souvenir à la main, par exemple une convention du projet."""
         return self.store.remember(self.project, content, kind=kind)
+
+
+def compact_messages(messages: list[dict], budget_tokens: int) -> int:
+    """Garde la conversation sous le budget, sur place. D'abord on raccourcit
+    les résultats d'outils anciens, puis on retire les plus vieux échanges
+    après la consigne. Renvoie le nombre de messages touchés. Sans ça, Ollama
+    tronque le début en silence et le modèle perd sa consigne."""
+    touched = 0
+    if _messages_tokens(messages) <= budget_tokens:
+        return 0
+    tool_indexes = [i for i, m in enumerate(messages) if m.get("role") == "tool"]
+    for i in tool_indexes[:-KEEP_RECENT_TOOL_RESULTS]:
+        content = messages[i].get("content") or ""
+        if len(content) > 400:
+            messages[i]["content"] = content[:300] + "\n… [résultat raccourci pour tenir dans le contexte]"
+            touched += 1
+        if _messages_tokens(messages) <= budget_tokens:
+            return touched
+    # Retirer les plus anciens échanges, en gardant la consigne (index 0) et le dernier message utilisateur.
+    while len(messages) > 2 and _messages_tokens(messages) > budget_tokens:
+        victim = 1
+        # Ne jamais laisser un résultat d'outil orphelin : on retire l'assistant et ses outils ensemble.
+        messages.pop(victim)
+        touched += 1
+        while len(messages) > 2 and messages[victim].get("role") == "tool":
+            messages.pop(victim)
+            touched += 1
+    return touched
+
+
+def _messages_tokens(messages: list[dict]) -> int:
+    total = 0
+    for m in messages:
+        total += _estimate_tokens(str(m.get("content") or "")) + 4
+        for call in m.get("tool_calls") or []:
+            total += _estimate_tokens(json.dumps(call.get("function", {})))
+    return total
 
 
 def _describe_call(call: ToolCall) -> str:

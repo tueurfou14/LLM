@@ -10,6 +10,7 @@
   cerveau use ollama|lmstudio   bascule le serveur d'inférence
   cerveau bench [modèles...]    mesure le débit réel des modèles
   cerveau skills                liste les procédures disponibles
+  cerveau context [n]           affiche ou applique la taille de contexte (crée la variante Ollama)
 
 Variable CERVEAU_DEBUG=1 : affiche les skills choisis et les réponses brutes du modèle.
 """
@@ -23,6 +24,7 @@ from pathlib import Path
 
 from . import __version__, config, hardware, skills as skills_mod
 from .agent import Agent
+from . import ollama
 from .llm import Client, LLMError
 from .memory import MemoryStore
 
@@ -85,6 +87,46 @@ def cmd_check(_args: argparse.Namespace) -> int:
     for needed, label in ((cfg.model, "modèle principal"), (cfg.embedding_model, "modèle d'embedding")):
         ok = any(needed in m for m in models)
         print(f"  {'✓' if ok else '✗'} {label} « {needed} » {'disponible' if ok else 'absent'}")
+    if ollama.is_ollama(cfg.base_url):
+        try:
+            configured, maximum = ollama.context_of(cfg.base_url, cfg.model)
+        except LLMError:
+            configured, maximum = None, None
+        if configured is None:
+            print(f"  ✗ contexte : Ollama applique son défaut (souvent 4096) au lieu de {cfg.context_tokens}."
+                  f" Lancez « cerveau context {cfg.context_tokens} ».")
+        elif configured < cfg.context_tokens:
+            print(f"  ✗ contexte : {configured} servi, {cfg.context_tokens} configuré."
+                  f" Lancez « cerveau context {cfg.context_tokens} ».")
+        else:
+            print(f"  ✓ contexte : {configured} tokens" + (f" (max {maximum})" if maximum else ""))
+    return 0
+
+
+def cmd_context(args: argparse.Namespace) -> int:
+    cfg = config.load()
+    if not args.tokens:
+        print(f"contexte configuré : {cfg.context_tokens} tokens, modèle {cfg.model}")
+        if ollama.is_ollama(cfg.base_url):
+            try:
+                configured, maximum = ollama.context_of(cfg.base_url, cfg.model)
+                print(f"servi par Ollama   : {configured or 'défaut (souvent 4096)'}" + (f", max {maximum}" if maximum else ""))
+            except LLMError as exc:
+                print(f"✗ {exc}")
+        return 0
+    cfg.context_tokens = args.tokens
+    if ollama.is_ollama(cfg.base_url):
+        print(f"création de la variante avec {args.tokens} tokens de contexte…")
+        try:
+            cfg.model = ollama.ensure_context(cfg.base_url, cfg.model, args.tokens)
+        except LLMError as exc:
+            print(f"✗ {exc}")
+            return 1
+        print(f"✓ modèle actif : {cfg.model}")
+    else:
+        print("serveur LM Studio : réglez la taille de contexte dans ses paramètres de chargement du modèle.")
+    cfg.save()
+    print(f"✓ contexte configuré : {cfg.context_tokens} tokens")
     return 0
 
 
@@ -299,6 +341,10 @@ def main(argv: list[str] | None = None) -> int:
     p.set_defaults(fn=cmd_bench)
 
     sub.add_parser("skills", help="liste les procédures disponibles").set_defaults(fn=cmd_skills)
+
+    p = sub.add_parser("context", help="affiche ou applique la taille de contexte")
+    p.add_argument("tokens", nargs="?", type=int, help="ex: 32768")
+    p.set_defaults(fn=cmd_context)
 
     args = parser.parse_args(argv)
     return args.fn(args)
