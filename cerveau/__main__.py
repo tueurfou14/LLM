@@ -6,12 +6,16 @@
   cerveau audit [dossier]       audit de sécurité guidé du projet
   cerveau memory [dossier]      affiche les derniers souvenirs
   cerveau note [dossier] texte  ajoute un souvenir
+  cerveau model [nom]           affiche ou change le modèle principal
+  cerveau use ollama|lmstudio   bascule le serveur d'inférence
+  cerveau bench [modèles...]    mesure le débit réel des modèles
 """
 
 from __future__ import annotations
 
 import argparse
 import sys
+import time
 from pathlib import Path
 
 from . import __version__, config, hardware
@@ -153,6 +157,80 @@ def cmd_note(args: argparse.Namespace) -> int:
     return 0
 
 
+SERVERS = {
+    "ollama": ("http://localhost:11434/v1", "nomic-embed-text"),
+    "lmstudio": ("http://localhost:1234/v1", "text-embedding-nomic-embed-text-v1.5"),
+}
+
+
+def cmd_model(args: argparse.Namespace) -> int:
+    cfg = config.load()
+    if args.name:
+        cfg.model = args.name
+    if args.embedding:
+        cfg.embedding_model = args.embedding
+    if args.context:
+        cfg.context_tokens = args.context
+    if args.name or args.embedding or args.context:
+        cfg.save()
+        print("configuration enregistrée")
+    print(f"modèle principal : {cfg.model}")
+    print(f"embedding        : {cfg.embedding_model}")
+    print(f"contexte         : {cfg.context_tokens} tokens")
+    print(f"serveur          : {cfg.base_url}")
+    try:
+        models = Client(cfg.base_url, cfg.api_key).models()
+        print("disponibles      : " + (", ".join(models) or "aucun"))
+    except LLMError:
+        print("disponibles      : serveur injoignable")
+    return 0
+
+
+def cmd_use(args: argparse.Namespace) -> int:
+    cfg = config.load()
+    url, embedding = SERVERS[args.server]
+    cfg.base_url = url
+    cfg.embedding_model = embedding
+    cfg.save()
+    print(f"serveur : {args.server} ({url}), embedding : {embedding}")
+    print("pensez à vérifier le nom du modèle principal avec « cerveau model »")
+    return 0
+
+
+BENCH_PROMPT = (
+    "Écris une fonction Python qui lit un fichier CSV de ventes (date, produit, quantité, prix) "
+    "et renvoie le chiffre d'affaires par mois, avec les tests pytest correspondants."
+)
+
+
+def cmd_bench(args: argparse.Namespace) -> int:
+    cfg = config.load()
+    client = Client(cfg.base_url, cfg.api_key)
+    models = args.models or [cfg.model]
+    messages = [{"role": "user", "content": BENCH_PROMPT}]
+    print(f"serveur {cfg.base_url}, {args.tokens} tokens par modèle\n")
+    print(f"{'modèle':<32} {'1er token':>10} {'débit':>12}")
+    for model in models:
+        start = time.perf_counter()
+        first = None
+        chars = 0
+        try:
+            for token in client.chat_stream(model, messages, max_tokens=args.tokens):
+                if first is None:
+                    first = time.perf_counter() - start
+                chars += len(token)
+        except LLMError as exc:
+            print(f"{model:<32} erreur : {exc}")
+            continue
+        total = time.perf_counter() - start
+        gen = total - (first or 0)
+        # Approximation : un token de code fait environ 3,5 caractères.
+        tps = (chars / 3.5) / gen if gen > 0 else 0
+        print(f"{model:<32} {first or 0:>8.2f} s {tps:>8.1f} tok/s")
+    print("\nLe débit est estimé à partir des caractères reçus ; comparez les modèles entre eux.")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="cerveau", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--version", action="version", version=f"cerveau {__version__}")
@@ -175,6 +253,21 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("project")
     p.add_argument("text", nargs="+")
     p.set_defaults(fn=cmd_note)
+
+    p = sub.add_parser("model", help="affiche ou change le modèle principal")
+    p.add_argument("name", nargs="?", help="nom du modèle, ex: qwen3-coder:30b")
+    p.add_argument("--embedding", help="modèle d'embedding")
+    p.add_argument("--context", type=int, help="taille du contexte en tokens")
+    p.set_defaults(fn=cmd_model)
+
+    p = sub.add_parser("use", help="bascule entre ollama et lmstudio")
+    p.add_argument("server", choices=sorted(SERVERS))
+    p.set_defaults(fn=cmd_use)
+
+    p = sub.add_parser("bench", help="mesure le débit réel des modèles")
+    p.add_argument("models", nargs="*", help="modèles à tester, par défaut le modèle actif")
+    p.add_argument("--tokens", type=int, default=300)
+    p.set_defaults(fn=cmd_bench)
 
     args = parser.parse_args(argv)
     return args.fn(args)

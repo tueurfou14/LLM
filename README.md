@@ -52,6 +52,10 @@ cerveau chat ./mon-projet    # dialogue, développement et audit sur ce dossier
 cerveau audit ./mon-projet   # audit de sécurité guidé
 cerveau memory ./mon-projet  # souvenirs enregistrés
 cerveau note ./mon-projet "On utilise SQLAlchemy, jamais de SQL brut."
+cerveau model                # modèle actif et modèles disponibles sur le serveur
+cerveau model qwen3-coder:30b   # change de modèle principal
+cerveau use lmstudio         # bascule le serveur (ollama ou lmstudio)
+cerveau bench qwen2.5-coder:7b qwen3-coder:30b   # compare les débits réels
 ```
 
 Le dossier passé à `chat` ou `audit` est la racine de travail : le modèle
