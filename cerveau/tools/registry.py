@@ -12,6 +12,7 @@ class Tool:
     description: str
     parameters: dict
     run: Callable[..., str]
+    dangerous: bool = False   # demande une confirmation à l'utilisateur avant d'agir
 
     def schema(self) -> dict:
         return {
@@ -33,10 +34,13 @@ class Registry:
     def names(self) -> list[str]:
         return list(self._tools)
 
-    def call(self, name: str, arguments: dict, root: Path) -> str:
+    def call(self, name: str, arguments: dict, root: Path,
+             confirm: Callable[[str, dict], bool] | None = None) -> str:
         tool = self._tools.get(name)
         if tool is None:
             return f"Outil inconnu : {name}. Outils disponibles : {', '.join(self._tools)}"
+        if tool.dangerous and confirm is not None and not confirm(name, arguments):
+            return f"L'utilisateur a refusé l'exécution de {name}. Propose une autre approche ou demande-lui pourquoi."
         try:
             return tool.run(root=root, **arguments)
         except TypeError as exc:
@@ -46,10 +50,10 @@ class Registry:
 
 
 def default_registry() -> Registry:
-    from . import files, security
+    from . import files, security, shell
 
     reg = Registry()
-    for tool in (*files.TOOLS, *security.TOOLS):
+    for tool in (*files.TOOLS, *shell.TOOLS, *security.TOOLS):
         reg.add(tool)
     return reg
 

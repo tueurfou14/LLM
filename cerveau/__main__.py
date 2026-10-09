@@ -32,9 +32,26 @@ def _print_token(token: str) -> None:
 
 
 def _print_tool(name: str, args: dict, result: str) -> None:
-    short = ", ".join(f"{k}={v!r}" for k, v in args.items())
-    sys.stdout.write(f"\n  ⚙ {name}({short}) → {len(result)} caractères\n")
+    short = ", ".join(f"{k}={_short(v)}" for k, v in args.items())
+    first = result.splitlines()[0] if result else ""
+    sys.stdout.write(f"\n  ⚙ {name}({short}) → {first[:100]}\n")
     sys.stdout.flush()
+
+
+def _short(value: object, limit: int = 60) -> str:
+    text = repr(value)
+    return text if len(text) <= limit else text[:limit] + "…"
+
+
+def _confirm(name: str, args: dict) -> bool:
+    command = args.get("command", "")
+    sys.stdout.write(f"\n  ⚠ Le modèle veut exécuter : {command}\n  Autoriser ? [o/N] ")
+    sys.stdout.flush()
+    try:
+        answer = input().strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        return False
+    return answer in ("o", "oui", "y", "yes")
 
 
 def cmd_info(_args: argparse.Namespace) -> int:
@@ -68,14 +85,18 @@ def _agent(args: argparse.Namespace) -> Agent:
     cfg = config.load()
     root = Path(args.project).resolve()
     if not root.is_dir():
-        sys.exit(f"dossier introuvable : {root}")
-    return Agent(cfg, root, on_token=_print_token, on_tool=_print_tool)
+        answer = input(f"Le dossier {root} n'existe pas. Le créer ? [o/N] ").strip().lower()
+        if answer not in ("o", "oui", "y", "yes"):
+            sys.exit("abandon")
+        root.mkdir(parents=True)
+    return Agent(cfg, root, on_token=_print_token, on_tool=_print_tool, confirm=_confirm)
 
 
 def cmd_chat(args: argparse.Namespace) -> int:
     agent = _agent(args)
     print(f"Cerveau v{__version__} · projet « {agent.project} » · modèle {agent.config.model}")
-    print("Tapez votre question, « /note texte » pour mémoriser un fait, « /quit » pour sortir.\n")
+    print(f"dossier de travail : {agent.root}")
+    print("Tapez votre demande, « /note texte » pour mémoriser un fait, « /quit » pour sortir.\n")
     while True:
         try:
             line = input("vous > ").strip()

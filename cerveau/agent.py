@@ -16,19 +16,21 @@ from .llm import Client, Reply
 from .memory import MemoryStore
 from .tools import Registry, default_registry
 
-SYSTEM_PROMPT = """Tu es Cerveau, un assistant de développement et d'audit de sécurité qui travaille sur le projet « {project} ».
+SYSTEM_PROMPT = """Tu es Cerveau, un développeur senior et auditeur de sécurité. Tu travailles dans le dossier du projet « {project} », qui est ta racine : tous les chemins sont relatifs à ce dossier.
 
-Règles :
-- Tu réponds en français, de façon précise et concise.
-- Tu n'inventes jamais le contenu d'un fichier : tu le lis avec les outils.
-- Pour un audit de sécurité, tu lances d'abord les scanners (semgrep_scan, secrets_scan, dependencies_scan), puis tu lis le code concerné pour confirmer ou écarter chaque résultat, et tu proposes un correctif concret.
-- Tu classes les failles par gravité et tu indiques fichier et ligne.
-- Quand une tâche est terminée, tu résumes ce qui a été fait et ce qui reste à faire.
+Tu disposes d'outils pour lire, chercher, créer et modifier des fichiers, créer des dossiers, exécuter des commandes (tests, installation, build, git) et lancer des scanners de sécurité. Utilise-les : tu agis, tu ne te contentes pas de décrire.
+
+Méthode :
+- Pour une tâche de code, annonce en deux lignes ce que tu vas faire, puis crée ou modifie les fichiers avec write_file et edit_file. Un projet complet se construit par étapes : commence par la structure et un premier module qui fonctionne, puis étends. Ne demande pas de permission pour écrire dans le projet.
+- Tu n'inventes jamais le contenu d'un fichier existant : tu le lis d'abord.
+- Après avoir écrit du code, vérifie-le quand c'est possible avec run_command (tests, compilation, lancement).
+- Pour un audit de sécurité, lance d'abord les scanners disponibles, puis lis le code concerné pour confirmer ou écarter chaque résultat, classe les failles par gravité avec fichier et ligne, et propose un correctif concret.
+- Tu réponds en français, de façon précise et concise. Tu ne refuses jamais une tâche de développement ou d'audit sur ce projet ; si quelque chose est hors de portée de tes outils, dis exactement ce qui manque.
+- Quand une tâche est terminée, résume ce qui a été fait et ce qui reste à faire.
 
 Souvenirs pertinents sur ce projet :
 {memories}
 """
-
 MAX_TOOL_ROUNDS = 12
 
 
@@ -36,7 +38,8 @@ class Agent:
     def __init__(self, config: Config, project_root: Path, client: Client | None = None,
                  store: MemoryStore | None = None, registry: Registry | None = None,
                  on_token: Callable[[str], None] | None = None,
-                 on_tool: Callable[[str, dict, str], None] | None = None):
+                 on_tool: Callable[[str, dict, str], None] | None = None,
+                 confirm: Callable[[str, dict], bool] | None = None):
         self.config = config
         self.root = project_root.resolve()
         self.project = self.root.name
@@ -45,6 +48,7 @@ class Agent:
         self.registry = registry or default_registry()
         self.on_token = on_token
         self.on_tool = on_tool
+        self.confirm = confirm
         self.history: list[dict] = []
 
     # --- embeddings -----------------------------------------------------------
@@ -77,7 +81,7 @@ class Agent:
                 break
             messages.append(_assistant_message(reply))
             for call in reply.tool_calls:
-                result = self.registry.call(call.name, call.arguments, self.root)
+                result = self.registry.call(call.name, call.arguments, self.root, confirm=self.confirm)
                 if self.on_tool:
                     self.on_tool(call.name, call.arguments, result)
                 messages.append({"role": "tool", "tool_call_id": call.id or call.name, "name": call.name,

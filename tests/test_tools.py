@@ -45,3 +45,35 @@ def test_registry_reports_unknown_tool(project: Path):
 def test_registry_catches_bad_arguments(project: Path):
     reg = default_registry()
     assert "invalides" in reg.call("read_file", {"chemin": "app.py"}, project)
+
+
+def test_write_edit_and_create_directory(project: Path):
+    from cerveau.tools.files import create_directory, edit_file, write_file
+
+    assert "créé" in write_file(project, "src/app/main.py", "print('a')\n")
+    assert (project / "src/app/main.py").read_text() == "print('a')\n"
+    assert "modifié" in edit_file(project, "src/app/main.py", "'a'", "'b'")
+    assert (project / "src/app/main.py").read_text() == "print('b')\n"
+    assert "introuvable" in edit_file(project, "src/app/main.py", "zzz", "y")
+    assert "dossier prêt" in create_directory(project, "docs/api")
+    assert (project / "docs/api").is_dir()
+
+
+def test_write_outside_project_is_blocked(project: Path):
+    from cerveau.tools.files import write_file
+
+    with pytest.raises(PermissionError):
+        write_file(project, "../evil.txt", "x")
+
+
+def test_run_command_requires_confirmation(project: Path):
+    reg = default_registry()
+    refused = reg.call("run_command", {"command": "echo hello"}, project, confirm=lambda n, a: False)
+    assert "refusé" in refused
+    allowed = reg.call("run_command", {"command": "echo hello"}, project, confirm=lambda n, a: True)
+    assert "code de sortie 0" in allowed and "hello" in allowed
+
+
+def test_run_command_without_confirm_hook_runs(project: Path):
+    reg = default_registry()
+    assert "hello" in reg.call("run_command", {"command": "echo hello"}, project)

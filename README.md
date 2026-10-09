@@ -15,7 +15,7 @@ Tout le reste vit à côté de lui et ne dépend pas de lui :
 | `cerveau/hardware.py` | Sonde la machine et choisit le palier de modèle | RAM, GPU, mémoire unifiée |
 | `cerveau/llm.py` | Client OpenAI-compatible avec streaming et appels d'outils | LM Studio ou Ollama |
 | `cerveau/memory.py` | Mémoire de projet : épisodes et faits, recherche vectorielle et plein texte | SQLite |
-| `cerveau/tools/` | Outils que le modèle appelle : lecture du code, Semgrep, gitleaks, Trivy | Scanners locaux |
+| `cerveau/tools/` | Outils que le modèle appelle : lecture, écriture et édition de fichiers, commandes avec confirmation, Semgrep, gitleaks, Trivy | Projet et scanners locaux |
 | `cerveau/agent.py` | La boucle : rappel, modèle, outils, mémorisation | |
 
 Changer de modèle revient à changer une ligne de configuration. Le cerveau,
@@ -48,11 +48,16 @@ winget install gitleaks trivy      # Windows
 ```bash
 cerveau info                 # matériel détecté et modèle conseillé
 cerveau check                # le serveur répond-il, les modèles sont-ils chargés
-cerveau chat ./mon-projet    # dialogue avec mémoire
+cerveau chat ./mon-projet    # dialogue, développement et audit sur ce dossier
 cerveau audit ./mon-projet   # audit de sécurité guidé
 cerveau memory ./mon-projet  # souvenirs enregistrés
 cerveau note ./mon-projet "On utilise SQLAlchemy, jamais de SQL brut."
 ```
+
+Le dossier passé à `chat` ou `audit` est la racine de travail : le modèle
+lit, crée et modifie des fichiers uniquement dedans. S'il n'existe pas,
+`cerveau` propose de le créer. Toute commande que le modèle veut exécuter
+(tests, installation, build) vous est soumise avant de tourner.
 
 La configuration est écrite au premier lancement dans `~/.cerveau/config.json`.
 Les variables `CERVEAU_BASE_URL`, `CERVEAU_MODEL` et `CERVEAU_EMBEDDING_MODEL`

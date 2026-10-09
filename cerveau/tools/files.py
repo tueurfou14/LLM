@@ -109,3 +109,74 @@ TOOLS = [
         run=search_code,
     ),
 ]
+
+
+# --- écriture -----------------------------------------------------------------
+
+def write_file(root: Path, path: str, content: str) -> str:
+    """Crée ou remplace un fichier du projet. Les dossiers parents sont créés."""
+    target = safe_path(root, path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    existed = target.exists()
+    target.write_text(content, encoding="utf-8")
+    lines = content.count("\n") + (1 if content and not content.endswith("\n") else 0)
+    return f"{'remplacé' if existed else 'créé'} : {path} ({lines} lignes)"
+
+
+def edit_file(root: Path, path: str, old: str, new: str) -> str:
+    """Remplace un passage exact d'un fichier. Le passage doit être unique."""
+    target = safe_path(root, path)
+    if not target.is_file():
+        return f"fichier introuvable : {path}"
+    text = target.read_text(encoding="utf-8", errors="replace")
+    count = text.count(old)
+    if count == 0:
+        return f"passage introuvable dans {path} ; relis le fichier et copie le texte exact"
+    if count > 1:
+        return f"passage présent {count} fois dans {path} ; donne plus de contexte pour le rendre unique"
+    target.write_text(text.replace(old, new, 1), encoding="utf-8")
+    return f"modifié : {path}"
+
+
+def create_directory(root: Path, path: str) -> str:
+    """Crée un dossier, parents compris."""
+    target = safe_path(root, path)
+    target.mkdir(parents=True, exist_ok=True)
+    return f"dossier prêt : {path}"
+
+
+TOOLS += [
+    Tool(
+        name="write_file",
+        description="Crée ou remplace entièrement un fichier du projet avec le contenu donné.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "Chemin relatif à la racine du projet"},
+                "content": {"type": "string", "description": "Contenu complet du fichier"},
+            },
+            "required": ["path", "content"],
+        },
+        run=write_file,
+    ),
+    Tool(
+        name="edit_file",
+        description="Remplace un passage exact d'un fichier existant par un nouveau texte.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "path": {"type": "string"},
+                "old": {"type": "string", "description": "Texte exact à remplacer, unique dans le fichier"},
+                "new": {"type": "string", "description": "Texte de remplacement"},
+            },
+            "required": ["path", "old", "new"],
+        },
+        run=edit_file,
+    ),
+    Tool(
+        name="create_directory",
+        description="Crée un dossier dans le projet.",
+        parameters={"type": "object", "properties": {"path": {"type": "string"}}, "required": ["path"]},
+        run=create_directory,
+    ),
+]
