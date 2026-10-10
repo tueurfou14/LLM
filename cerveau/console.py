@@ -8,6 +8,7 @@ le mode texte.
 from __future__ import annotations
 
 import difflib
+import threading
 import time
 from pathlib import Path
 
@@ -91,13 +92,36 @@ class ChatConsole:
     # --- gestion des affichages vivants -----------------------------------------
 
     def _start_status(self, message: str) -> None:
+        """Spinner avec chrono : le texte est complété par le temps écoulé,
+        pour qu'une attente anormale se voie au lieu de rester muette."""
         self._stop_live()
         self._stop_status()
         self.status = self.out.status(message, spinner="dots")
         self.status.start()
+        self._status_stop = threading.Event()
+        started = time.perf_counter()
+        status = self.status
+        stop = self._status_stop
+
+        def tick() -> None:
+            while not stop.wait(1.0):
+                elapsed = time.perf_counter() - started
+                if elapsed < 3:
+                    continue
+                label = f"{int(elapsed // 60)} min {int(elapsed % 60):02d} s" if elapsed >= 60 else f"{elapsed:.0f} s"
+                style = "yellow" if elapsed >= 120 else "dim"
+                try:
+                    status.update(f"{message} [{style}]· {label}[/]")
+                except Exception:  # noqa: BLE001
+                    return
+
+        threading.Thread(target=tick, daemon=True).start()
 
     def _stop_status(self) -> None:
         if self.status is not None:
+            stop = getattr(self, "_status_stop", None)
+            if stop is not None:
+                stop.set()
             self.status.stop()
             self.status = None
 
