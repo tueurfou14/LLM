@@ -1,0 +1,126 @@
+{#- Gabarit commun à toutes les pages du site. Chaque page fait :
+      {% extends "_base.html" %}
+      {% set titre = "Titre de la page" %}
+      {% set description = "Phrase pour Google (150 caractères environ)." %}
+      {% block contenu %} ... un seul <h1> ... {% endblock %}
+    Variables : site (paramètres), textes (textes des pages), services, realisations, actualites… (voir app/site/public.py).
+-#}
+{% set titre = titre | default(site.nom) %}
+{% set description = description | default(site.description) %}
+{% set titre_complet = (site.nom ~ " – " ~ site.slogan) if request.url.path == "/" else (titre ~ " | " ~ site.nom) %}
+{% set image_partage = image_partage | default(url_base ~ "/medias/" ~ site.image_accueil if site.image_accueil else "") %}
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ titre_complet }}</title>
+  <meta name="description" content="{{ description | replace('\n', ' ') | trim }}">
+  <link rel="canonical" href="{{ url_base }}{{ request.url.path }}">
+  <meta name="theme-color" content="{{ site.couleur_primaire }}">
+  <meta property="og:type" content="{{ type_partage | default('website') }}">
+  <meta property="og:locale" content="fr_FR">
+  <meta property="og:site_name" content="{{ site.nom }}">
+  <meta property="og:title" content="{{ titre_complet }}">
+  <meta property="og:description" content="{{ description | replace('\n', ' ') | trim }}">
+  <meta property="og:url" content="{{ url_base }}{{ request.url.path }}">
+{% if image_partage %}
+  <meta property="og:image" content="{{ image_partage }}">
+{% endif %}
+  <link rel="icon" href="/static/site/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&amp;display=swap">
+  <link rel="stylesheet" href="/static/site/css/style.css">
+  <style>
+    :root {
+      --primaire: {{ site.couleur_primaire }};
+      --accent: {{ site.couleur_accent }};
+      --fond: {{ site.couleur_fond }};
+      --texte: {{ site.couleur_texte }};
+    }
+  </style>
+  <script>
+    /* « js-menu » active le menu mobile ; « js » masque les éléments à animer.
+       Sans JS, sans GSAP (CDN bloqué) ou en mouvement réduit, tout reste visible. */
+    (function (h) {
+      h.classList.add("js-menu");
+      if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      h.classList.add("js");
+      setTimeout(function () { if (!window.animationsPretes) h.classList.remove("js"); }, 2500);
+    })(document.documentElement);
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
+  <script src="/static/site/js/main.js" defer></script>
+</head>
+<body>
+  <a class="evitement" href="#contenu">Aller au contenu</a>
+
+  <header class="entete">
+    <div class="conteneur entete__barre">
+      <a class="logo" href="/">
+{% if site.logo %}
+        <img class="logo__image" src="{{ media(site.logo, 'favicon.svg') }}" alt="" width="40" height="40">
+{% else %}
+        <span class="logo__marque" aria-hidden="true">{{ site.nom[:1] }}</span>
+{% endif %}
+        <span class="logo__nom">{{ site.nom }}</span>
+      </a>
+      <button class="nav-bouton" type="button" aria-expanded="false" aria-controls="navigation">
+        <span class="nav-bouton__barres" aria-hidden="true"></span>
+        <span class="visuellement-cache">Menu</span>
+      </button>
+      <nav id="navigation" class="nav" aria-label="Navigation principale">
+        <ul class="nav__liste">
+{% for item in menu %}
+{% set actif = request.url.path == item.adresse or (item.adresse != "/" and request.url.path.startswith(item.adresse ~ "/")) %}
+          <li><a href="{{ item.adresse }}"{% if actif %} class="actif" aria-current="page"{% endif %}>{{ item.titre }}</a></li>
+{% endfor %}
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="contenu">
+{% block contenu %}{% endblock %}
+  </main>
+
+  <footer class="pied">
+    <div class="conteneur pied__grille">
+      <div>
+        <p class="pied__nom">{{ site.nom }}</p>
+        <p>{{ site.slogan }}</p>
+{% set reseaux = [("Facebook", site.facebook), ("Instagram", site.instagram), ("LinkedIn", site.linkedin), ("YouTube", site.youtube)] %}
+        <ul class="pied__reseaux">
+{% for nom, adresse in reseaux if adresse %}
+          <li><a href="{{ adresse }}" target="_blank" rel="noopener">{{ nom }}</a></li>
+{% endfor %}
+        </ul>
+      </div>
+      <div>
+        <p class="pied__titre">Coordonnées</p>
+        <ul class="pied__liste">
+          <li><a href="{{ site.adresse | carte }}" target="_blank" rel="noopener">{{ site.adresse | lignes | join(", ") }}</a></li>
+          <li><a href="tel:{{ site.telephone | tel }}">{{ site.telephone }}</a></li>
+          <li><a href="mailto:{{ site.email }}">{{ site.email }}</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="pied__titre">Horaires</p>
+        <ul class="pied__liste">
+{% for ligne in site.horaires | lignes %}
+          <li>{{ ligne }}</li>
+{% endfor %}
+        </ul>
+      </div>
+    </div>
+    <div class="conteneur pied__bas">
+      <p>© {{ annee }} {{ site.nom }}</p>
+      <ul class="pied__liens">
+        <li><a href="/mentions-legales"{% if request.url.path == "/mentions-legales" %} aria-current="page"{% endif %}>Mentions légales</a></li>
+      </ul>
+    </div>
+  </footer>
+</body>
+</html>

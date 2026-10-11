@@ -1,0 +1,152 @@
+{% extends "_base.html" %}
+{% set titre = "Accueil" %}
+{% set description = site.description %}
+{% block contenu %}
+    <section class="hero">
+      <div class="conteneur hero__grille">
+        <div class="hero__texte">
+{% if textes.accueil_surtitre %}
+          <p class="surtitre" data-anim>{{ textes.accueil_surtitre }}</p>
+{% endif %}
+          <h1 data-anim>{{ textes.accueil_titre }}</h1>
+          <p class="hero__intro" data-anim>{{ textes.accueil_intro }}</p>
+          <div class="boutons" data-anim>
+            <a class="bouton" href="/contact">{{ textes.accueil_bouton }}</a>
+            <a class="bouton bouton--contour" href="/services">Nos services</a>
+          </div>
+        </div>
+        <div class="hero__visuel" data-anim>
+          <img src="{{ media(site.image_accueil, 'accueil.svg') }}" alt="{{ site.nom }}" width="800" height="600" fetchpriority="high">
+        </div>
+      </div>
+    </section>
+
+{% set chiffres = textes.accueil_chiffres | paires %}
+{% if chiffres %}
+    <section class="chiffres" aria-label="Chiffres clés">
+      <ul class="conteneur chiffres__liste">
+{% for valeur, libelle in chiffres %}
+        <li data-anim><strong>{{ valeur }}</strong> <span>{{ libelle }}</span></li>
+{% endfor %}
+      </ul>
+    </section>
+{% endif %}
+
+{% if offres %}
+    <section class="section">
+      <div class="conteneur">
+        <div class="section__tete" data-anim>
+          <p class="surtitre">En ce moment</p>
+          <h2>{{ textes.accueil_offres_titre }}</h2>
+        </div>
+        <div class="cartes">
+{% for offre in offres %}
+          <article class="carte carte--offre" data-anim>
+{% if offre.image %}
+            <img class="carte__image" src="{{ media(offre.image, 'actualite.svg') }}" alt="{{ offre.titre }}" width="800" height="500" loading="lazy">
+{% endif %}
+{% if offre.prix %}
+            <p class="pastille">{{ offre.prix }}</p>
+{% endif %}
+            <h3>{{ offre.titre }}</h3>
+            {{ offre.texte | paragraphes }}
+{% if offre.fin %}
+            <p class="carte__note">Jusqu'au {{ offre.fin | date_longue }}</p>
+{% endif %}
+          </article>
+{% endfor %}
+        </div>
+      </div>
+    </section>
+{% endif %}
+
+{% if services %}
+    <section class="section{{ ' section--alt' if offres }}">
+      <div class="conteneur">
+        <div class="section__tete" data-anim>
+          <p class="surtitre">Nos services</p>
+          <h2>{{ textes.accueil_services_titre }}</h2>
+        </div>
+        <div class="cartes">
+{% for service in services[:6] %}
+          <article class="carte" data-anim>
+            <span class="carte__numero">{{ "%02d" | format(loop.index) }}</span>
+            <h3>{{ service.titre }}</h3>
+            <p>{{ service.resume }}</p>
+{% if service.prix %}
+            <p class="carte__prix">{{ service.prix }}</p>
+{% endif %}
+          </article>
+{% endfor %}
+        </div>
+        <p class="section__suite"><a class="lien-fleche" href="/services">Découvrir tous nos services</a></p>
+      </div>
+    </section>
+{% endif %}
+
+{% if realisations %}
+    <section class="section{{ '' if offres else ' section--alt' }}">
+      <div class="conteneur">
+        <div class="section__tete" data-anim>
+          <p class="surtitre">En images</p>
+          <h2>{{ textes.accueil_realisations_titre }}</h2>
+        </div>
+        <div class="galerie">
+{% for realisation in realisations[:3] %}
+          <figure class="realisation" data-anim>
+            <img src="{{ media(realisation.image, 'realisation-' ~ (loop.index0 % 3 + 1) ~ '.svg') }}" alt="{{ realisation.titre }}" width="800" height="600" loading="lazy">
+            <figcaption>
+              <h3>{{ realisation.titre }}</h3>
+{% if realisation.legende %}
+              <p>{{ realisation.legende }}</p>
+{% endif %}
+            </figcaption>
+          </figure>
+{% endfor %}
+        </div>
+        <p class="section__suite"><a class="lien-fleche" href="/realisations">Voir toutes les réalisations</a></p>
+      </div>
+    </section>
+{% endif %}
+
+{% if temoignages %}
+    <section class="section section--temoignages">
+      <div class="conteneur">
+        <div class="section__tete" data-anim>
+          <p class="surtitre">Témoignages</p>
+          <h2>{{ textes.accueil_temoignages_titre }}</h2>
+        </div>
+        <div class="cartes">
+{% for avis in temoignages[:6] %}
+          <figure class="carte temoignage" data-anim>
+{% if avis.note %}
+            <p class="temoignage__note"><span aria-hidden="true">{{ "★" * (avis.note | int) }}</span><span class="visuellement-cache">Note : {{ avis.note }} sur 5</span></p>
+{% endif %}
+            <blockquote>{{ avis.texte | paragraphes }}</blockquote>
+            <figcaption>{{ avis.auteur }}</figcaption>
+          </figure>
+{% endfor %}
+        </div>
+      </div>
+    </section>
+{% endif %}
+
+{% if actualites %}
+    <section class="section">
+      <div class="conteneur">
+        <div class="section__tete" data-anim>
+          <p class="surtitre">Actualités</p>
+          <h2>{{ textes.accueil_actualites_titre }}</h2>
+        </div>
+        <div class="actus">
+{% for a in actualites[:3] %}
+{% include "_carte-actualite.html" %}
+{% endfor %}
+        </div>
+        <p class="section__suite"><a class="lien-fleche" href="/actualites">Toutes les actualités</a></p>
+      </div>
+    </section>
+{% endif %}
+
+{% include "_bandeau-contact.html" %}
+{% endblock %}

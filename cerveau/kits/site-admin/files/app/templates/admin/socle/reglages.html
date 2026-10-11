@@ -1,0 +1,49 @@
+{# Page « Textes des pages » ou « Paramètres du site » : réglages de contenu/site.json, regroupés par groupe. #}
+{% extends "base.html" %}
+{% block titre %}{{ titre }} · {{ titre_app }}{% endblock %}
+{% block contenu %}
+<div class="barre">
+  <h1>{{ titre }}</h1>
+  <div class="boutons"><a class="bouton secondaire" href="/" target="_blank" rel="noopener">Voir le site ↗</a></div>
+</div>
+<p class="discret">{{ intro }}</p>
+{% if erreurs %}<div class="flash erreur" role="alert">Certaines valeurs sont incorrectes : voir les champs signalés. Rien n'a été enregistré.</div>{% endif %}
+<form method="post" action="{{ ADMIN }}/{{ section }}" enctype="multipart/form-data" class="reglages">
+  {% for groupe, liste in groupes %}
+  <fieldset class="formulaire large">
+    <legend>{{ groupe }}</legend>
+    <div class="grille">
+    {% for r in liste %}
+      {% set type = r.type or 'texte' %}
+      {% set v = saisies[r.cle] if r.cle in saisies else valeurs[r.cle] %}
+      {% set id = 'reglage-' ~ r.cle %}
+      <div class="champ {{ 'plein' if type in ('texte_long', 'image') }}">
+        <label for="{{ id }}">{{ r.libelle }}</label>
+        {% if type == 'texte_long' %}
+          <textarea id="{{ id }}" name="{{ r.cle }}" rows="{{ [3, (v.count('\n') + 2)]|max if v else 3 }}">{{ v }}</textarea>
+        {% elif type == 'image' %}
+          <span class="champ-image">
+            {% if valeurs[r.cle] %}<img class="apercu" src="/medias/{{ valeurs[r.cle] }}" alt="Image actuelle" data-apercu-de="{{ r.cle }}">
+            {% else %}<img class="apercu" alt="" hidden data-apercu-de="{{ r.cle }}">{% endif %}
+            <input id="{{ id }}" type="file" name="{{ r.cle }}" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp">
+            {% if valeurs[r.cle] %}<label class="case"><input type="checkbox" name="{{ r.cle }}__retirer"> Retirer l'image</label>{% endif %}
+          </span>
+        {% elif type == 'couleur' %}
+          <span class="champ-couleur"><input id="{{ id }}" type="color" name="{{ r.cle }}" value="{{ v }}"><code>{{ v }}</code></span>
+        {% else %}
+          <input id="{{ id }}" name="{{ r.cle }}" value="{{ v }}"
+            {% if type == 'email' %}type="email"{% elif type == 'url' %}type="url" placeholder="https://"{% elif type == 'telephone' %}type="tel"{% endif %}>
+        {% endif %}
+        {% if r.aide %}<small>{{ r.aide }}</small>{% endif %}
+        {% if erreurs.get(r.cle) %}<small class="erreur">{{ erreurs[r.cle] }}</small>{% endif %}
+        {% if type not in ('image', 'couleur') and r.cle not in saisies and valeurs[r.cle] != r.valeur %}
+          <details class="origine"><summary>Texte d'origine</summary><p>{{ r.valeur or '(vide)' }}</p></details>
+        {% endif %}
+      </div>
+    {% endfor %}
+    </div>
+  </fieldset>
+  {% endfor %}
+  <div class="boutons barre-enregistrer"><button type="submit">Enregistrer</button></div>
+</form>
+{% endblock %}

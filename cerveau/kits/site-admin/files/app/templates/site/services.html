@@ -1,0 +1,38 @@
+{% extends "_base.html" %}
+{% set titre = textes.services_titre %}
+{% set description = textes.services_intro %}
+{% block contenu %}
+    <section class="entete-page">
+      <div class="conteneur" data-anim>
+        <p class="surtitre">Ce que nous faisons</p>
+        <h1>{{ textes.services_titre }}</h1>
+        {{ textes.services_intro | paragraphes }}
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="conteneur">
+        <div class="services">
+{% for service in services %}
+          <article class="service carte" data-anim>
+{% if service.image %}
+            <img class="service__image" src="{{ media(service.image, 'actualite.svg') }}" alt="{{ service.titre }}" width="800" height="500" loading="lazy">
+{% endif %}
+            <div class="service__texte">
+              <span class="carte__numero">{{ "%02d" | format(loop.index) }}</span>
+              <h2>{{ service.titre }}</h2>
+              {{ (service.detail or service.resume) | paragraphes }}
+{% if service.prix %}
+              <p class="carte__prix">{{ service.prix }}</p>
+{% endif %}
+            </div>
+          </article>
+{% else %}
+          <p class="vide">Nos services seront bientôt présentés ici. Contactez-nous pour en savoir plus.</p>
+{% endfor %}
+        </div>
+      </div>
+    </section>
+
+{% include "_bandeau-contact.html" %}
+{% endblock %}

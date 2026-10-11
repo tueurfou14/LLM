@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{% block titre %}Administration · {{ titre_app }}{% endblock %}</title>
+  <link rel="icon" href="/static/site/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/admin/style.css">
+</head>
+<body>
+{% if utilisateur %}
+{% set chemin = request.url.path %}
+<div class="app">
+  <aside class="menu">
+    <a class="marque" href="{{ ADMIN }}/">{% if site.logo %}<img src="/medias/{{ site.logo }}" alt="">{% endif %}<span>{{ titre_app }}</span></a>
+    <button class="menu-bouton" type="button" aria-label="Menu" aria-expanded="false" data-menu>☰</button>
+    <nav aria-label="Administration">
+      <a href="{{ ADMIN }}/" class="{{ 'actif' if chemin == ADMIN ~ '/' }}">Tableau de bord</a>
+      <div class="sep">Contenus</div>
+      {% for m in menu %}
+      <a href="{{ m.adresse }}/" class="{{ 'actif' if chemin.startswith(m.adresse ~ '/') }}">{{ m.libelle }}</a>
+      {% endfor %}
+      <div class="sep">Site</div>
+      <a href="{{ ADMIN }}/textes" class="{{ 'actif' if chemin.startswith(ADMIN ~ '/textes') }}">Textes des pages</a>
+      {% if utilisateur.est_admin %}
+      <a href="{{ ADMIN }}/parametres" class="{{ 'actif' if chemin.startswith(ADMIN ~ '/parametres') }}">Paramètres du site</a>
+      {% endif %}
+      <a href="/" target="_blank" rel="noopener">Voir le site ↗</a>
+      {% if utilisateur.est_admin %}
+      <div class="sep">Administration</div>
+      <a href="{{ ADMIN }}/utilisateurs" class="{{ 'actif' if chemin.startswith(ADMIN ~ '/utilisateurs') }}">Utilisateurs</a>
+      <a href="{{ ADMIN }}/journal" class="{{ 'actif' if chemin.startswith(ADMIN ~ '/journal') }}">Journal</a>
+      {% endif %}
+    </nav>
+    <div class="moi"><a href="{{ ADMIN }}/mon-compte">{{ utilisateur.nom or utilisateur.identifiant }}</a> · <a href="{{ ADMIN }}/deconnexion">Déconnexion</a></div>
+  </aside>
+  <main class="contenu">
+    {% for genre, message in flash %}<div class="flash {{ genre }}" role="status">{{ message }}</div>{% endfor %}
+    {% block contenu %}{% endblock %}
+  </main>
+</div>
+{% else %}
+{% block public %}{% endblock %}
+{% endif %}
+<script src="/static/admin/app.js"></script>
+</body>
+</html>

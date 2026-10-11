@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% set mois = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'] %}
+{% block titre %}Planning {{ module.libelle }} · {{ titre_app }}{% endblock %}
+{% block contenu %}
+<div class="barre">
+  <h1><a class="discret" href="{{ module.adresse }}/">{{ module.libelle }}</a> / Planning</h1>
+  <div class="boutons">
+    <a class="bouton secondaire" href="?mois={{ precedent }}">←</a>
+    <strong class="mois">{{ mois[debut.month - 1]|capitalize }} {{ debut.year }}</strong>
+    <a class="bouton secondaire" href="?mois={{ suivant }}">→</a>
+    {% if peut_ecrire %}<a class="bouton" href="{{ module.adresse }}/nouveau">{{ module.nouveau }}</a>{% endif %}
+  </div>
+</div>
+<div class="tableau">
+<table class="calendrier">
+  <thead><tr>{% for j in ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'] %}<th>{{ j }}</th>{% endfor %}</tr></thead>
+  <tbody>
+  {% for semaine in semaines %}
+    <tr>{% for jour in semaine %}
+      <td class="{{ 'hors-mois' if jour.month != debut.month }} {{ 'aujourdhui' if jour == aujourdhui }}">
+        <div class="jour">
+          {% if peut_ecrire %}<a href="{{ module.adresse }}/nouveau?{{ module.planning }}={{ jour.isoformat() }}">{{ jour.day }}</a>{% else %}{{ jour.day }}{% endif %}
+        </div>
+        {% for objet in par_jour.get(jour, []) %}
+          <a class="evenement" href="{{ module.adresse }}/{{ objet.id }}">{{ module.libelle_objet(objet) }}</a>
+        {% endfor %}
+      </td>
+    {% endfor %}</tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

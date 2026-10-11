@@ -1,0 +1,11 @@
+{#- Carte d'une actualité (accueil et page Actualités). Variable : a -#}
+          <article class="carte-actu" data-anim>
+            <a class="carte-actu__image" href="{{ lien(a) }}" tabindex="-1" aria-hidden="true">
+              <img src="{{ media(a.image, 'actualite.svg') }}" alt="{{ a.titre }}" width="800" height="500" loading="lazy">
+            </a>
+            <div class="carte-actu__texte">
+              <time datetime="{{ a.date.isoformat() if a.date else '' }}">{{ a.date | date_longue }}</time>
+              <h3><a href="{{ lien(a) }}">{{ a.titre }}</a></h3>
+              <p>{{ a.chapo }}</p>
+            </div>
+          </article>

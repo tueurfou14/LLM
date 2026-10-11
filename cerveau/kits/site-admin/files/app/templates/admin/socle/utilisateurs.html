@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block contenu %}
+<div class="barre"><h1>Utilisateurs</h1><a class="bouton" href="{{ ADMIN }}/utilisateurs/nouveau">Nouvel utilisateur</a></div>
+<div class="tableau">
+<table>
+  <thead><tr><th>Identifiant</th><th>Nom</th><th>Rôles</th><th>Actif</th></tr></thead>
+  <tbody>
+  {% for u in utilisateurs %}
+    <tr><td><a href="{{ ADMIN }}/utilisateurs/{{ u.id }}">{{ u.identifiant }}</a></td><td>{{ u.nom }}</td>
+      <td>{% for r in u.liste_roles %}<span class="etiquette">{{ roles.get(r, r) }}</span> {% endfor %}</td>
+      <td>{{ 'Oui' if u.actif else 'Non' }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

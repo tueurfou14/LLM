@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block titre %}Connexion · {{ titre_app }}{% endblock %}
+{% block public %}
+<main class="connexion">
+  <form method="post" action="{{ ADMIN }}/connexion" class="carte">
+    <h1>{{ titre_app }}</h1>
+    <p class="discret">Espace d'administration du site</p>
+    {% if erreur %}<div class="flash erreur" role="alert">{{ erreur }}</div>{% endif %}
+    <input type="hidden" name="suite" value="{{ suite }}">
+    <label>Identifiant <input name="identifiant" autocomplete="username" required autofocus></label>
+    <label>Mot de passe <input name="mot_de_passe" type="password" autocomplete="current-password" required></label>
+    <button type="submit">Se connecter</button>
+    <a class="discret" href="/">← Retour au site</a>
+  </form>
+</main>
+{% endblock %}

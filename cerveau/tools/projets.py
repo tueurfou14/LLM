@@ -221,7 +221,7 @@ def verify_project(root: Path) -> str:
 # --- modules déclaratifs (kit gestion) -----------------------------------------------
 
 TYPES = ("texte", "texte_long", "entier", "decimal", "monnaie", "date", "booleen", "choix", "email", "telephone",
-         "ref", "numero", "calcul")
+         "ref", "numero", "calcul", "image")
 
 
 def _modules_existants(root: Path) -> set[str]:
@@ -290,6 +290,9 @@ def add_module(root: Path, nom: str, libelle: str, champs: list, objet: str = ""
     if fichier.exists():
         return f"échec : app/modules/{nom}.py existe déjà. Lis-le et modifie-le avec edit_file."
     modules = _modules_existants(root) | {nom}
+    framework = (root / "app" / "core" / "framework.py").read_text(encoding="utf-8", errors="replace")
+    if any(isinstance(c, dict) and c.get("type") == "image" for c in champs) and '"image"' not in framework:
+        return "échec : le type image n'existe que dans les projets du kit site-admin."
     if isinstance(champs, str):
         try:
             champs = json.loads(champs)
@@ -385,9 +388,10 @@ TOOLS = [
     Tool(
         name="create_project",
         description="Crée un projet à partir d'un kit éprouvé et testé, dans le dossier vide du projet. "
-                    "Kits : gestion (ERP, CRM, facturation, stock, GMAO, planning…), site (site vitrine).",
+                    "Kits : gestion (ERP, CRM, facturation, stock, GMAO, planning…), site (site vitrine statique), "
+                    "site-admin (site vitrine dont le client modifie lui-même textes, photos, actualités, offres).",
         parameters={"type": "object", "properties": {
-            "kit": {"type": "string", "description": "gestion ou site (ou un kit de ~/.cerveau/kits)"},
+            "kit": {"type": "string", "description": "gestion, site ou site-admin (ou un kit de ~/.cerveau/kits)"},
             "title": {"type": "string", "description": "Nom affiché, ex. Garage Dupont"},
             "pack": {"type": "string", "description": "kit gestion : pack métier qui ajoute les bons modules : "
                      "garage, menuiserie, espaces-verts, scierie, batiment, optique (vide sinon)"}},

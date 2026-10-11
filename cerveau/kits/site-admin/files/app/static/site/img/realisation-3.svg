@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Illustration">
+  <defs>
+    <linearGradient id="ciel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#cfe0d8"/><stop offset="1" stop-color="#eef3ef"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#ciel)"/>
+  <path d="M0 400 C150 330 300 360 430 390 C560 420 680 360 800 340 L800 600 L0 600 Z" fill="#9bb3a6"/>
+  <g transform="translate(250 190)">
+    <rect x="0" y="40" width="300" height="230" fill="#f7f5f1"/>
+    <rect x="-20" y="20" width="340" height="28" fill="#1f3d36"/>
+    <rect x="30" y="80" width="240" height="150" fill="#b5cabf"/>
+    <line x1="110" y1="80" x2="110" y2="230" stroke="#f7f5f1" stroke-width="8"/>
+    <line x1="190" y1="80" x2="190" y2="230" stroke="#f7f5f1" stroke-width="8"/>
+  </g>
+  <circle cx="140" cy="380" r="60" fill="#5f8576"/><rect x="134" y="420" width="12" height="70" fill="#3f5f53"/>
+  <circle cx="690" cy="370" r="46" fill="#5f8576"/><rect x="685" y="400" width="10" height="70" fill="#3f5f53"/>
+  <path d="M0 520 C200 495 380 510 560 530 C680 542 750 535 800 528 L800 600 L0 600 Z" fill="#1f3d36"/>
+  <circle cx="120" cy="110" r="44" fill="#d9a066"/>
+</svg>

@@ -1,0 +1,41 @@
+{% extends "_base.html" %}
+{% set titre = article.titre %}
+{% set description = article.chapo %}
+{% set type_partage = "article" %}
+{% if article.image %}{% set image_partage = url_base ~ media(article.image, '') %}{% endif %}
+{% block contenu %}
+    <article class="article">
+      <header class="entete-page">
+        <div class="conteneur conteneur--etroit" data-anim>
+          <p class="surtitre"><a href="/actualites">Actualités</a> · <time datetime="{{ article.date.isoformat() if article.date else '' }}">{{ article.date | date_longue }}</time></p>
+          <h1>{{ article.titre }}</h1>
+          <p class="chapo">{{ article.chapo }}</p>
+        </div>
+      </header>
+      <div class="section">
+        <div class="conteneur conteneur--etroit">
+          <img class="article__image" src="{{ media(article.image, 'actualite.svg') }}" alt="{{ article.titre }}" width="1200" height="750" data-anim>
+          <div class="article__texte" data-anim>
+            {{ article.texte | paragraphes }}
+          </div>
+          <p class="section__suite"><a class="lien-fleche lien-fleche--retour" href="/actualites">Toutes les actualités</a></p>
+        </div>
+      </div>
+    </article>
+
+{% set autres = actualites | rejectattr("id", "equalto", article.id) | list %}
+{% if autres %}
+    <section class="section section--alt">
+      <div class="conteneur">
+        <div class="section__tete" data-anim>
+          <h2>À lire aussi</h2>
+        </div>
+        <div class="actus">
+{% for a in autres[:3] %}
+{% include "_carte-actualite.html" %}
+{% endfor %}
+        </div>
+      </div>
+    </section>
+{% endif %}
+{% endblock %}

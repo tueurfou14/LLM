@@ -1,0 +1,33 @@
+{# Un champ de formulaire. Variables : c (Champ), v (valeur), erreur, bloque, options, prefixe #}
+{% set nom = prefixe ~ c.nom %}
+{% if c.type == 'calcul' %}<span class="calcule">{{ formater(c, v) }}</span>
+{% elif c.type == 'numero' %}<input value="{{ v or '' }}" placeholder="attribué à l'enregistrement" disabled>
+{% elif c.type == 'image' %}
+  <span class="champ-image">
+    {% if v is string and v %}<img class="apercu" src="/medias/{{ v }}" alt="Image actuelle" data-apercu-de="{{ nom }}">
+    {% else %}<img class="apercu" alt="" hidden data-apercu-de="{{ nom }}">{% endif %}
+    <input type="file" id="champ-{{ nom }}" name="{{ nom }}" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+      {{ 'disabled' if bloque }} {{ 'required' if c.requis and not (v is string and v) }}>
+    <small>PNG, JPG ou WEBP, 5 Mo au plus.{% if v is string and v %} Laisser vide pour garder l'image actuelle.{% endif %}</small>
+    {% if v is string and v and not c.requis and not bloque %}
+    <label class="case"><input type="checkbox" name="{{ nom }}__retirer"> Retirer l'image</label>
+    {% endif %}
+  </span>
+{% elif c.type == 'texte_long' %}<textarea name="{{ nom }}" rows="4" {{ 'disabled' if bloque }} {{ 'required' if c.requis }}>{{ saisie(c, v) }}</textarea>
+{% elif c.type == 'booleen' %}<input type="checkbox" name="{{ nom }}" {{ 'checked' if v and v != '' }} {{ 'disabled' if bloque }}>
+{% elif c.type == 'choix' %}
+  <select name="{{ nom }}" {{ 'disabled' if bloque }} {{ 'required' if c.requis }}>
+    {% if not c.requis %}<option value=""></option>{% endif %}
+    {% for choix in c.choix %}<option value="{{ choix }}" {{ 'selected' if saisie(c, v) == choix }}>{{ choix }}</option>{% endfor %}
+  </select>
+{% elif c.type == 'ref' %}
+  <select name="{{ nom }}" {{ 'disabled' if bloque }} {{ 'required' if c.requis }}>
+    <option value=""></option>
+    {% for ident, libelle in options[c.nom] %}<option value="{{ ident }}" {{ 'selected' if saisie(c, v) == ident|string }}>{{ libelle }}</option>{% endfor %}
+  </select>
+{% else %}
+  <input name="{{ nom }}" value="{{ saisie(c, v) }}" {{ 'disabled' if bloque }} {{ 'required' if c.requis }}
+    {% if c.type == 'date' %}type="date"{% elif c.type == 'email' %}type="email"{% elif c.type == 'telephone' %}type="tel"
+    {% elif c.type == 'entier' %}type="number" step="1"{% elif c.type in ('decimal', 'monnaie') %}inputmode="decimal"{% endif %}>
+{% endif %}
+{% if erreur %}<small class="erreur">{{ erreur }}</small>{% endif %}

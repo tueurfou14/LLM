@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>{{ module.objet|capitalize }} {{ module.libelle_objet(objet) }}</title>
+  <link rel="stylesheet" href="/static/admin/impression.css">
+</head>
+<body>
+<div class="actions-ecran"><button onclick="window.print()">Imprimer / enregistrer en PDF</button></div>
+<div class="page">
+  {% if objet.statut is defined and objet.statut == 'Brouillon' %}<div class="filigrane">BROUILLON</div>{% endif %}
+  <header>
+    <div class="emetteur">
+      {% if site.logo %}<img src="/medias/{{ site.logo }}" alt="" class="logo">{% endif %}
+      <strong>{{ site.nom or titre_app }}</strong>
+      <div class="multi">{{ site.adresse }}</div>
+      {% if site.telephone %}<div>{{ site.telephone }}</div>{% endif %}
+      {% if site.email %}<div>{{ site.email }}</div>{% endif %}
+    </div>
+    <div class="destinataire">
+      {% for c in module.champs if c.type == 'ref' %}
+        {% set cible = objet[c.nom] %}
+        {% if cible %}
+          <strong>{{ REGISTRE[c.ref].libelle_objet(cible) }}</strong>
+          {% if cible.adresse is defined and cible.adresse %}<div class="multi">{{ cible.adresse }}</div>{% endif %}
+          {% if cible.siren is defined and cible.siren %}<div>SIREN {{ cible.siren }}</div>{% endif %}
+        {% endif %}
+      {% endfor %}
+    </div>
+  </header>
+  <h1>{{ module.objet|capitalize }} {{ module.libelle_objet(objet) }}</h1>
+  <dl class="infos">
+    {% for c in module.champs if c.type not in ('ref', 'calcul', 'numero', 'texte_long', 'image') and module.valeur(objet, c) not in (none, '') %}
+      <dt>{{ c.libelle }}</dt><dd>{{ module.afficher(objet, c) }}</dd>
+    {% endfor %}
+  </dl>
+  {% if module.lignes %}
+  <table class="lignes">
+    <thead><tr>{% for c in module.lignes.champs %}<th class="{{ 'nombre' if c.type in ('monnaie','decimal','entier') or c.affichage in ('monnaie','decimal','entier') }}">{{ c.libelle }}</th>{% endfor %}</tr></thead>
+    <tbody>
+    {% for ligne in objet[module.lignes.nom] %}
+      <tr>{% for c in module.lignes.champs %}<td class="{{ 'nombre' if c.type in ('monnaie','decimal','entier') or c.affichage in ('monnaie','decimal','entier') }}">{{ formater(c, module.valeur(ligne, c)) }}</td>{% endfor %}</tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  <table class="totaux">
+    {% for c in module.champs if c.type == 'calcul' %}<tr><th>{{ c.libelle }}</th><td>{{ module.afficher(objet, c) }}</td></tr>{% endfor %}
+  </table>
+  {% for c in module.champs if c.type == 'image' and module.valeur(objet, c) %}
+    <img src="/medias/{{ module.valeur(objet, c) }}" alt="{{ c.libelle }}" class="image-imprimee">
+  {% endfor %}
+  {% for c in module.champs if c.type == 'texte_long' and module.valeur(objet, c) %}
+    <h3>{{ c.libelle }}</h3><div class="multi">{{ module.valeur(objet, c) }}</div>
+  {% endfor %}
+  <footer>
+    <div>{{ site.nom }} · {{ site.raison_sociale }} · SIRET {{ site.siret }} · TVA {{ site.tva }}</div>
+  </footer>
+</div>
+</body>
+</html>

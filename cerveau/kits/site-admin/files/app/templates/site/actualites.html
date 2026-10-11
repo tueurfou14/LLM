@@ -1,0 +1,26 @@
+{% extends "_base.html" %}
+{% set titre = textes.actualites_titre %}
+{% set description = textes.actualites_intro %}
+{% block contenu %}
+    <section class="entete-page">
+      <div class="conteneur" data-anim>
+        <p class="surtitre">Quoi de neuf ?</p>
+        <h1>{{ textes.actualites_titre }}</h1>
+        {{ textes.actualites_intro | paragraphes }}
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="conteneur">
+        <div class="actus">
+{% for a in actualites %}
+{% include "_carte-actualite.html" %}
+{% else %}
+          <p class="vide">Aucune actualité pour le moment : revenez bientôt.</p>
+{% endfor %}
+        </div>
+      </div>
+    </section>
+
+{% include "_bandeau-contact.html" %}
+{% endblock %}

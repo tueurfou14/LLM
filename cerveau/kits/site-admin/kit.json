@@ -1,0 +1,31 @@
+{
+  "titre": "Site vitrine avec administration",
+  "description": "Site vitrine dynamique (accueil, services, réalisations, actualités, offres, témoignages, contact) dont le client modifie lui-même textes, photos, actualités et promotions dans un espace d'administration /admin : FastAPI + SQLite, pages rendues côté serveur, animations GSAP.",
+  "mots_cles": [
+    "site",
+    "vitrine",
+    "administration",
+    "admin",
+    "back-office",
+    "cms",
+    "actualités",
+    "actualites",
+    "blog",
+    "promotions",
+    "offres",
+    "garage",
+    "commerce",
+    "artisan",
+    "modifiable",
+    "contenu",
+    "site dynamique"
+  ],
+  "port": 8000,
+  "test": "uv run pytest -q",
+  "start": "uv run uvicorn app.main:app --reload --port {port}",
+  "sante": "/sante",
+  "renommer": {
+    "_gitignore": ".gitignore"
+  },
+  "suite": "Le site est complet dès la création : pages publiques (/, /services, /realisations, /actualites, /a-propos, /contact, /mentions-legales) et administration sur /admin (compte admin : mot de passe affiché au premier démarrage dans server_logs et écrit dans data/admin-initial.txt).\nAdapter au client : contenu/site.json d'abord (« parametres » : nom, coordonnées, horaires, couleurs, mentions ; « textes » : textes des pages ; « exemples » : services, réalisations, actualités, offres insérés au premier démarrage). Les exemples ne sont insérés qu'une fois : pour les réinstaller, supprimer data/app.db.\nPages : app/templates/site/*.html (un seul <h1>, {% set titre %} et {% set description %} en haut) ; nouvelle page = gabarit + une ligne dans PAGES de app/site/public.py. Style : app/static/site/css/style.css. Animations : app/static/site/js/main.js (attribut data-anim, jamais de pin).\nNouveau type de contenu modifiable par le client : add_module (fichier app/modules/<nom>.py, ses objets publiés deviennent la variable <nom> des gabarits) ; une photo = Champ(\"image\", \"Photo\", type=\"image\") à ajouter dans le fichier.\nAprès chaque changement : verify_project (les messages des tests disent quel fichier corriger)."
+}

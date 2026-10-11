@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block contenu %}
+<h1><a class="discret" href="{{ ADMIN }}/utilisateurs">Utilisateurs</a> / {{ cible.identifiant if cible else 'Nouvel utilisateur' }}</h1>
+<form method="post" action="{{ ADMIN }}{{ '/utilisateurs/' ~ cible.id if cible else '/utilisateurs/nouveau' }}" class="formulaire">
+  {% if erreur %}<div class="flash erreur">{{ erreur }}</div>{% endif %}
+  {% if not cible %}<label>Identifiant * <input name="identifiant" required maxlength="60"></label>{% endif %}
+  <label>Nom <input name="nom" value="{{ cible.nom if cible else '' }}" maxlength="120"></label>
+  <label>{{ 'Nouveau mot de passe (laisser vide pour ne pas changer)' if cible else 'Mot de passe *' }}
+    <input name="mot_de_passe" type="password" minlength="10" autocomplete="new-password" {{ '' if cible else 'required' }}></label>
+  <fieldset><legend>Rôles</legend>
+    {% for cle, libelle in roles.items() %}
+    <label class="case"><input type="checkbox" name="roles" value="{{ cle }}" {{ 'checked' if cible and cle in cible.liste_roles }}> {{ libelle }}</label>
+    {% endfor %}
+  </fieldset>
+  <label class="case"><input type="checkbox" name="actif" {{ 'checked' if not cible or cible.actif }}> Compte actif</label>
+  <div class="boutons"><button type="submit">Enregistrer</button><a href="{{ ADMIN }}/utilisateurs">Annuler</a></div>
+</form>
+{% endblock %}

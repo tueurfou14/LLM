@@ -1,0 +1,13 @@
+{#- Bandeau d'appel à l'action, inclus en bas de plusieurs pages : {% include "_bandeau-contact.html" %} -#}
+    <section class="bandeau">
+      <div class="conteneur bandeau__contenu" data-anim>
+        <div>
+          <h2>{{ textes.bandeau_titre }}</h2>
+          <p>{{ textes.bandeau_texte }}</p>
+        </div>
+        <div class="boutons">
+          <a class="bouton bouton--clair" href="/contact">{{ textes.bandeau_bouton }}</a>
+          <a class="bouton bouton--contour-clair" href="tel:{{ site.telephone | tel }}">{{ site.telephone }}</a>
+        </div>
+      </div>
+    </section>

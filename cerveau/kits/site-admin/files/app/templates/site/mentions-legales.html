@@ -1,0 +1,40 @@
+{% extends "_base.html" %}
+{% set titre = "Mentions légales" %}
+{% set description = "Mentions légales du site " ~ site.nom ~ " : éditeur, hébergeur, données personnelles." %}
+{% block contenu %}
+    <section class="entete-page">
+      <div class="conteneur">
+        <h1>Mentions légales</h1>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="conteneur texte-legal">
+        <h2>Éditeur du site</h2>
+        <p>
+          {{ site.nom }}<br>
+          {{ site.raison_sociale }}<br>
+          Capital social : {{ site.capital }}<br>
+          Siège : {{ site.adresse | lignes | join(", ") }}<br>
+          SIRET : {{ site.siret }}<br>
+          RCS / RM : {{ site.rcs }}<br>
+          TVA intracommunautaire : {{ site.tva }}<br>
+          Téléphone : <a href="tel:{{ site.telephone | tel }}">{{ site.telephone }}</a><br>
+          E-mail : <a href="mailto:{{ site.email }}">{{ site.email }}</a>
+        </p>
+
+        <h2>Directeur de la publication</h2>
+        <p>{{ site.directeur_publication }}</p>
+
+        <h2>Hébergement</h2>
+        {{ site.hebergeur | paragraphes }}
+
+        <h2>Propriété intellectuelle</h2>
+        <p>L'ensemble des contenus de ce site (textes, images, logos) est la propriété de {{ site.nom }} ou de ses partenaires. Toute reproduction sans autorisation écrite est interdite.</p>
+
+        <h2>Données personnelles</h2>
+        <p>Ce site ne comporte aucun formulaire et ne dépose aucun cookie de mesure d'audience. Les informations que vous nous transmettez par téléphone ou par e-mail servent uniquement à répondre à votre demande et ne sont jamais cédées à des tiers. Conformément au RGPD, vous pouvez demander l'accès, la rectification ou la suppression de vos données en écrivant à <a href="mailto:{{ site.email }}">{{ site.email }}</a>.</p>
+        <p>Pour l'affichage, le site charge des polices de caractères (Google Fonts), une bibliothèque d'animation (cdnjs) et, sur la page Contact, une carte OpenStreetMap, depuis des serveurs tiers qui reçoivent à cette occasion l'adresse IP du visiteur.</p>
+      </div>
+    </section>
+{% endblock %}

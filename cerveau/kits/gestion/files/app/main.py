@@ -29,7 +29,9 @@ async def demarrage(_: FastAPI):
 
 
 app = FastAPI(title=config.APP_TITLE, lifespan=demarrage, docs_url=None, redoc_url=None)
-app.add_middleware(SessionMiddleware, secret_key=cle_secrete(), same_site="lax", max_age=12 * 3600)
+# Cookie au nom du projet : deux applications sur 127.0.0.1 ne se volent pas leur session.
+app.add_middleware(SessionMiddleware, secret_key=cle_secrete(), session_cookie="session-__SLUG__", same_site="lax",
+                   max_age=12 * 3600)
 app.mount("/static", StaticFiles(directory=APP_DIR / "static"), name="static")
 app.include_router(pages.router)
 for module in REGISTRE.values():

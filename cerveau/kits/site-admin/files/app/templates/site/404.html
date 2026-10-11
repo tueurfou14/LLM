@@ -1,0 +1,16 @@
+{% extends "_base.html" %}
+{% set titre = "Page introuvable" %}
+{% set description = "Cette page n'existe pas ou a été déplacée." %}
+{% block contenu %}
+    <section class="entete-page entete-page--centre">
+      <div class="conteneur">
+        <p class="surtitre">Erreur 404</p>
+        <h1>Page introuvable</h1>
+        <p class="chapo">Cette page n'existe pas ou a été déplacée.</p>
+        <div class="boutons">
+          <a class="bouton" href="/">Retour à l'accueil</a>
+          <a class="bouton bouton--contour" href="/contact">Nous contacter</a>
+        </div>
+      </div>
+    </section>
+{% endblock %}

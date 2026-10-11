@@ -1,0 +1,467 @@
+{
+  "parametres": [
+    {
+      "cle": "nom",
+      "groupe": "Identité",
+      "libelle": "Nom affiché",
+      "valeur": "__TITRE__"
+    },
+    {
+      "cle": "slogan",
+      "groupe": "Identité",
+      "libelle": "Slogan",
+      "valeur": "Un savoir-faire local, un travail soigné"
+    },
+    {
+      "cle": "description",
+      "groupe": "Identité",
+      "libelle": "Description pour les moteurs de recherche",
+      "type": "texte_long",
+      "valeur": "__TITRE__ accompagne particuliers et professionnels de la région : conseil, réalisation et suivi, avec un interlocuteur unique et des délais tenus.",
+      "aide": "Une ou deux phrases (150 caractères environ), reprises par Google et lors des partages."
+    },
+    {
+      "cle": "logo",
+      "groupe": "Identité",
+      "libelle": "Logo",
+      "type": "image",
+      "valeur": "",
+      "aide": "PNG, JPG ou WEBP, 5 Mo au plus. Sans logo, l'initiale du nom est affichée."
+    },
+    {
+      "cle": "adresse",
+      "groupe": "Coordonnées",
+      "libelle": "Adresse",
+      "type": "texte_long",
+      "valeur": "1 rue de l'Exemple\n75001 Paris"
+    },
+    {
+      "cle": "telephone",
+      "groupe": "Coordonnées",
+      "libelle": "Téléphone",
+      "type": "telephone",
+      "valeur": "01 23 45 67 89"
+    },
+    {
+      "cle": "email",
+      "groupe": "Coordonnées",
+      "libelle": "E-mail",
+      "type": "email",
+      "valeur": "contact@exemple.fr"
+    },
+    {
+      "cle": "horaires",
+      "groupe": "Coordonnées",
+      "libelle": "Horaires d'ouverture",
+      "type": "texte_long",
+      "valeur": "Lundi – vendredi : 8 h – 12 h / 13 h 30 – 18 h\nSamedi : 9 h – 12 h\nDimanche : fermé",
+      "aide": "Une ligne par jour ou par période."
+    },
+    {
+      "cle": "latitude",
+      "groupe": "Carte",
+      "libelle": "Latitude",
+      "valeur": "48.86061",
+      "aide": "Pour placer le repère sur la carte de la page Contact, ex. 48.86061 (clic droit sur openstreetmap.org, « Afficher l'adresse »). Vide : pas de carte."
+    },
+    {
+      "cle": "longitude",
+      "groupe": "Carte",
+      "libelle": "Longitude",
+      "valeur": "2.33764",
+      "aide": "Ex. 2.33764."
+    },
+    {
+      "cle": "image_accueil",
+      "groupe": "Images",
+      "libelle": "Grande photo de l'accueil",
+      "type": "image",
+      "valeur": "",
+      "aide": "Format paysage conseillé (1600 × 1200 pixels environ)."
+    },
+    {
+      "cle": "image_a_propos",
+      "groupe": "Images",
+      "libelle": "Photo de la page À propos",
+      "type": "image",
+      "valeur": ""
+    },
+    {
+      "cle": "couleur_primaire",
+      "groupe": "Couleurs",
+      "libelle": "Couleur principale",
+      "type": "couleur",
+      "valeur": "#1f3d36",
+      "aide": "Boutons, menu actif, bandeaux."
+    },
+    {
+      "cle": "couleur_accent",
+      "groupe": "Couleurs",
+      "libelle": "Couleur d'accent",
+      "type": "couleur",
+      "valeur": "#c47a3a",
+      "aide": "Petits titres et détails."
+    },
+    {
+      "cle": "couleur_fond",
+      "groupe": "Couleurs",
+      "libelle": "Couleur de fond",
+      "type": "couleur",
+      "valeur": "#f7f5f1"
+    },
+    {
+      "cle": "couleur_texte",
+      "groupe": "Couleurs",
+      "libelle": "Couleur du texte",
+      "type": "couleur",
+      "valeur": "#1c1c1a"
+    },
+    {
+      "cle": "facebook",
+      "groupe": "Réseaux sociaux",
+      "libelle": "Page Facebook",
+      "type": "url",
+      "valeur": "",
+      "aide": "Adresse complète, ex. https://www.facebook.com/… Vide : lien masqué."
+    },
+    {
+      "cle": "instagram",
+      "groupe": "Réseaux sociaux",
+      "libelle": "Compte Instagram",
+      "type": "url",
+      "valeur": ""
+    },
+    {
+      "cle": "linkedin",
+      "groupe": "Réseaux sociaux",
+      "libelle": "Page LinkedIn",
+      "type": "url",
+      "valeur": ""
+    },
+    {
+      "cle": "youtube",
+      "groupe": "Réseaux sociaux",
+      "libelle": "Chaîne YouTube",
+      "type": "url",
+      "valeur": ""
+    },
+    {
+      "cle": "url_site",
+      "groupe": "Référencement",
+      "libelle": "Adresse publique du site",
+      "type": "url",
+      "valeur": "",
+      "aide": "Ex. https://www.mon-entreprise.fr : utilisée dans sitemap.xml et pour les partages sur les réseaux."
+    },
+    {
+      "cle": "raison_sociale",
+      "groupe": "Mentions légales",
+      "libelle": "Raison sociale et forme juridique",
+      "valeur": "[À compléter : ex. SARL __TITRE__]"
+    },
+    {
+      "cle": "capital",
+      "groupe": "Mentions légales",
+      "libelle": "Capital social",
+      "valeur": "[À compléter]"
+    },
+    {
+      "cle": "siret",
+      "groupe": "Mentions légales",
+      "libelle": "SIRET",
+      "valeur": "[À compléter]"
+    },
+    {
+      "cle": "rcs",
+      "groupe": "Mentions légales",
+      "libelle": "RCS ou répertoire des métiers",
+      "valeur": "[À compléter : ex. RCS Paris 123 456 789]"
+    },
+    {
+      "cle": "tva",
+      "groupe": "Mentions légales",
+      "libelle": "N° de TVA intracommunautaire",
+      "valeur": "[À compléter]"
+    },
+    {
+      "cle": "directeur_publication",
+      "groupe": "Mentions légales",
+      "libelle": "Directeur de la publication",
+      "valeur": "[À compléter : nom et prénom]"
+    },
+    {
+      "cle": "hebergeur",
+      "groupe": "Mentions légales",
+      "libelle": "Hébergeur du site",
+      "type": "texte_long",
+      "valeur": "[À compléter : nom, adresse et téléphone de l'hébergeur]"
+    }
+  ],
+  "textes": [
+    {
+      "cle": "accueil_surtitre",
+      "groupe": "Accueil",
+      "libelle": "Petit titre au-dessus du grand titre",
+      "valeur": "Artisan de confiance"
+    },
+    {
+      "cle": "accueil_titre",
+      "groupe": "Accueil",
+      "libelle": "Grand titre",
+      "valeur": "Un savoir-faire local, un travail soigné"
+    },
+    {
+      "cle": "accueil_intro",
+      "groupe": "Accueil",
+      "libelle": "Texte de présentation",
+      "type": "texte_long",
+      "valeur": "Nous étudions chaque demande avec vous, nous vous remettons un devis clair et nous tenons les délais annoncés."
+    },
+    {
+      "cle": "accueil_bouton",
+      "groupe": "Accueil",
+      "libelle": "Bouton principal",
+      "valeur": "Demander un devis"
+    },
+    {
+      "cle": "accueil_chiffres",
+      "groupe": "Accueil",
+      "libelle": "Chiffres clés",
+      "type": "texte_long",
+      "valeur": "15 ans | d'expérience\n1 200 | clients accompagnés\n48 h | pour un premier devis",
+      "aide": "Une ligne par chiffre, sous la forme « valeur | libellé ». Vide : bandeau masqué."
+    },
+    {
+      "cle": "accueil_offres_titre",
+      "groupe": "Accueil",
+      "libelle": "Titre de la section des offres",
+      "valeur": "Nos offres du moment"
+    },
+    {
+      "cle": "accueil_services_titre",
+      "groupe": "Accueil",
+      "libelle": "Titre de la section des services",
+      "valeur": "Ce que nous faisons pour vous"
+    },
+    {
+      "cle": "accueil_realisations_titre",
+      "groupe": "Accueil",
+      "libelle": "Titre de la section des réalisations",
+      "valeur": "Nos dernières réalisations"
+    },
+    {
+      "cle": "accueil_temoignages_titre",
+      "groupe": "Accueil",
+      "libelle": "Titre de la section des témoignages",
+      "valeur": "Ils nous font confiance"
+    },
+    {
+      "cle": "accueil_actualites_titre",
+      "groupe": "Accueil",
+      "libelle": "Titre de la section des actualités",
+      "valeur": "Les dernières nouvelles"
+    },
+    {
+      "cle": "services_titre",
+      "groupe": "Services",
+      "libelle": "Titre de la page",
+      "valeur": "Nos services"
+    },
+    {
+      "cle": "services_intro",
+      "groupe": "Services",
+      "libelle": "Introduction",
+      "type": "texte_long",
+      "valeur": "De la première visite au suivi après intervention, nous vous accompagnons à chaque étape."
+    },
+    {
+      "cle": "realisations_titre",
+      "groupe": "Réalisations",
+      "libelle": "Titre de la page",
+      "valeur": "Nos réalisations"
+    },
+    {
+      "cle": "realisations_intro",
+      "groupe": "Réalisations",
+      "libelle": "Introduction",
+      "type": "texte_long",
+      "valeur": "Une sélection de travaux récents, menés avec le même soin du premier rendez-vous à la livraison."
+    },
+    {
+      "cle": "actualites_titre",
+      "groupe": "Actualités",
+      "libelle": "Titre de la page",
+      "valeur": "Actualités"
+    },
+    {
+      "cle": "actualites_intro",
+      "groupe": "Actualités",
+      "libelle": "Introduction",
+      "type": "texte_long",
+      "valeur": "Nouveautés, conseils et vie de l'entreprise."
+    },
+    {
+      "cle": "apropos_titre",
+      "groupe": "À propos",
+      "libelle": "Titre de la page",
+      "valeur": "Une entreprise à taille humaine"
+    },
+    {
+      "cle": "apropos_texte",
+      "groupe": "À propos",
+      "libelle": "Présentation",
+      "type": "texte_long",
+      "valeur": "Fondée par des professionnels passionnés, __TITRE__ met son expérience au service des particuliers, des entreprises et des collectivités de la région.\n\nNous privilégions les fournisseurs locaux, les produits durables et une relation directe avec nos clients, du premier rendez-vous jusqu'au suivi.",
+      "aide": "Une ligne vide sépare deux paragraphes."
+    },
+    {
+      "cle": "apropos_valeurs",
+      "groupe": "À propos",
+      "libelle": "Nos valeurs",
+      "type": "texte_long",
+      "valeur": "Proximité | Un interlocuteur unique, joignable et disponible.\nQualité | Un travail soigné et des produits choisis pour durer.\nTransparence | Des devis détaillés, sans surprise.",
+      "aide": "Une ligne par valeur, sous la forme « titre | texte ». Vide : section masquée."
+    },
+    {
+      "cle": "contact_titre",
+      "groupe": "Contact",
+      "libelle": "Titre de la page",
+      "valeur": "Nous contacter"
+    },
+    {
+      "cle": "contact_intro",
+      "groupe": "Contact",
+      "libelle": "Introduction",
+      "type": "texte_long",
+      "valeur": "Appelez-nous, écrivez-nous ou passez nous voir : nous vous répondons rapidement."
+    },
+    {
+      "cle": "bandeau_titre",
+      "groupe": "Bandeau de contact (bas des pages)",
+      "libelle": "Titre",
+      "valeur": "Un projet, une question ?"
+    },
+    {
+      "cle": "bandeau_texte",
+      "groupe": "Bandeau de contact (bas des pages)",
+      "libelle": "Texte",
+      "type": "texte_long",
+      "valeur": "Parlez-nous-en : nous vous répondons sous 48 h avec une première estimation, sans engagement."
+    },
+    {
+      "cle": "bandeau_bouton",
+      "groupe": "Bandeau de contact (bas des pages)",
+      "libelle": "Bouton",
+      "valeur": "Nous contacter"
+    }
+  ],
+  "exemples": {
+    "services": [
+      {
+        "titre": "Conseil et diagnostic",
+        "resume": "Un premier rendez-vous pour comprendre votre besoin et vous proposer la bonne solution.",
+        "detail": "Nous prenons le temps d'écouter votre demande et d'examiner la situation sur place.\n\nVous repartez avec un avis clair, des options chiffrées et aucune obligation.",
+        "prix": "Gratuit",
+        "position": 1
+      },
+      {
+        "titre": "Réalisation",
+        "resume": "Des travaux menés par notre équipe, dans le respect des règles de l'art et des délais.",
+        "detail": "Nous organisons l'intervention de A à Z, avec des produits de qualité et un interlocuteur unique.",
+        "prix": "Sur devis",
+        "position": 2
+      },
+      {
+        "titre": "Entretien",
+        "resume": "Un suivi régulier pour garder vos installations en parfait état, plus longtemps.",
+        "detail": "Visites programmées, contrôles et petites réparations : nous vous rappelons quand il est temps.",
+        "prix": "À partir de 49 €",
+        "position": 3
+      },
+      {
+        "titre": "Dépannage",
+        "resume": "Une intervention rapide en cas d'urgence, avec un diagnostic honnête.",
+        "detail": "Appelez-nous : nous vous proposons un créneau dans les meilleurs délais et vous annonçons le tarif avant d'intervenir.",
+        "prix": "",
+        "position": 4
+      }
+    ],
+    "realisations": [
+      {
+        "titre": "Rénovation complète",
+        "legende": "Remise à neuf en six semaines, dans les délais annoncés.",
+        "lieu": "Centre-ville",
+        "date": "J-20"
+      },
+      {
+        "titre": "Aménagement d'un local professionnel",
+        "legende": "Un espace d'accueil pensé pour les clients.",
+        "lieu": "Zone d'activités",
+        "date": "J-55"
+      },
+      {
+        "titre": "Intervention sur mesure",
+        "legende": "Une solution adaptée à une configuration délicate.",
+        "lieu": "Secteur nord",
+        "date": "J-90"
+      }
+    ],
+    "actualites": [
+      {
+        "titre": "Nouveaux horaires d'ouverture",
+        "date": "J-4",
+        "chapo": "Pour mieux vous accueillir, nous sommes désormais ouverts le samedi matin.",
+        "texte": "À partir de ce mois-ci, notre équipe vous accueille aussi le samedi de 9 h à 12 h.\n\nPrenez rendez-vous par téléphone ou passez directement : nous serons ravis de vous recevoir."
+      },
+      {
+        "titre": "Nos conseils pour préparer l'hiver",
+        "date": "J-18",
+        "chapo": "Quelques vérifications simples avant les premiers froids évitent bien des soucis.",
+        "texte": "L'arrivée de l'hiver est le bon moment pour faire le point.\n\nNotre équipe se tient à votre disposition pour un contrôle complet et des conseils adaptés à votre situation."
+      },
+      {
+        "titre": "Bienvenue sur notre nouveau site",
+        "date": "J-30",
+        "chapo": "Retrouvez nos services, nos réalisations et toutes nos actualités en ligne.",
+        "texte": "Notre nouveau site vous présente nos services et nos dernières réalisations.\n\nN'hésitez pas à nous contacter pour toute question."
+      }
+    ],
+    "offres": [
+      {
+        "titre": "Diagnostic offert",
+        "texte": "Pour toute demande de devis ce mois-ci, le diagnostic sur place est offert.",
+        "prix": "Offert",
+        "position": 1
+      },
+      {
+        "titre": "Contrat d'entretien",
+        "texte": "Souscrivez un contrat annuel et bénéficiez d'une remise sur la première visite.",
+        "prix": "-15 %",
+        "position": 2
+      }
+    ],
+    "temoignages": [
+      {
+        "auteur": "Exemple : Marie D.",
+        "texte": "Exemple d'avis à remplacer par un avis réel de client (masqué tant que la case « Affiché sur le site » n'est pas cochée).",
+        "note": "5",
+        "position": 1,
+        "publie": false
+      },
+      {
+        "auteur": "Exemple : Thomas L.",
+        "texte": "Exemple d'avis à remplacer par un avis réel de client.",
+        "note": "5",
+        "position": 2,
+        "publie": false
+      },
+      {
+        "auteur": "Exemple : Sophie R.",
+        "texte": "Exemple d'avis à remplacer par un avis réel de client.",
+        "note": "4",
+        "position": 3,
+        "publie": false
+      }
+    ]
+  }
+}

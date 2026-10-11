@@ -1,0 +1,47 @@
+{% extends "_base.html" %}
+{% set titre = textes.contact_titre %}
+{% set description = "Contactez " ~ site.nom ~ " : téléphone, e-mail, adresse et horaires d'ouverture." %}
+{% set carte = carte_osm(site.latitude, site.longitude) %}
+{% block contenu %}
+    <section class="entete-page">
+      <div class="conteneur" data-anim>
+        <p class="surtitre">Parlons de votre projet</p>
+        <h1>{{ textes.contact_titre }}</h1>
+        {{ textes.contact_intro | paragraphes }}
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="conteneur contact">
+        <div class="carte contact__bloc" data-anim>
+          <h2>Téléphone</h2>
+          <p><a class="contact__valeur" href="tel:{{ site.telephone | tel }}">{{ site.telephone }}</a></p>
+        </div>
+        <div class="carte contact__bloc" data-anim>
+          <h2>E-mail</h2>
+          <p><a class="contact__valeur" href="mailto:{{ site.email }}">{{ site.email }}</a></p>
+          <p><a class="bouton" href="mailto:{{ site.email }}?subject={{ ('Demande de renseignements – ' ~ site.nom) | urlencode }}">Écrire un message</a></p>
+        </div>
+        <div class="carte contact__bloc" data-anim>
+          <h2>Adresse</h2>
+          <address>{% for ligne in site.adresse | lignes %}{{ ligne }}{% if not loop.last %}<br>{% endif %}{% endfor %}</address>
+          <p><a class="lien-fleche" href="{{ site.adresse | carte }}" target="_blank" rel="noopener">Itinéraire et carte</a></p>
+        </div>
+        <div class="carte contact__bloc" data-anim>
+          <h2>Horaires</h2>
+          <ul class="liste-simple">
+{% for ligne in site.horaires | lignes %}
+            <li>{{ ligne }}</li>
+{% endfor %}
+          </ul>
+        </div>
+      </div>
+{% if carte %}
+      <div class="conteneur">
+        <div class="carte-osm" data-anim>
+          <iframe src="{{ carte }}" title="Plan d'accès : {{ site.adresse | lignes | join(', ') }}" loading="lazy" referrerpolicy="no-referrer"></iframe>
+        </div>
+      </div>
+{% endif %}
+    </section>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "_base.html" %}
+{% set titre = textes.realisations_titre %}
+{% set description = textes.realisations_intro %}
+{% block contenu %}
+    <section class="entete-page">
+      <div class="conteneur" data-anim>
+        <p class="surtitre">En images</p>
+        <h1>{{ textes.realisations_titre }}</h1>
+        {{ textes.realisations_intro | paragraphes }}
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="conteneur">
+        <div class="galerie">
+{% for realisation in realisations %}
+          <figure class="realisation" data-anim>
+            <img src="{{ media(realisation.image, 'realisation-' ~ (loop.index0 % 3 + 1) ~ '.svg') }}" alt="{{ realisation.titre }}" width="800" height="600" loading="lazy">
+            <figcaption>
+              <h2>{{ realisation.titre }}</h2>
+{% if realisation.lieu or realisation.date %}
+              <p class="realisation__infos">{{ realisation.lieu }}{% if realisation.lieu and realisation.date %} · {% endif %}{{ realisation.date | date_longue }}</p>
+{% endif %}
+              {{ realisation.legende | paragraphes }}
+            </figcaption>
+          </figure>
+{% else %}
+          <p class="vide">Nos réalisations seront bientôt présentées ici.</p>
+{% endfor %}
+        </div>
+      </div>
+    </section>
+
+{% include "_bandeau-contact.html" %}
+{% endblock %}

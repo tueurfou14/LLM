@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block titre %}{{ module.libelle }} · {{ titre_app }}{% endblock %}
+{% block contenu %}
+<div class="barre">
+  <h1>{{ module.libelle }} <span class="discret">({{ total }})</span></h1>
+  <div class="boutons">
+    {% if module.planning %}<a class="bouton secondaire" href="{{ module.adresse }}/planning">Planning</a>{% endif %}
+    <a class="bouton secondaire" href="{{ module.adresse }}/export.csv">Export CSV</a>
+    {% if peut_ecrire %}<a class="bouton" href="{{ module.adresse }}/nouveau">{{ module.nouveau }}</a>{% endif %}
+  </div>
+</div>
+<form class="recherche" method="get" action="{{ module.adresse }}/">
+  <input type="search" name="q" value="{{ q }}" placeholder="Rechercher" aria-label="Rechercher">
+  <button type="submit" class="secondaire">Rechercher</button>
+</form>
+<div class="tableau">
+<table>
+  <thead><tr>{% for c in colonnes %}<th class="{{ 'nombre' if c.type in ('monnaie','decimal','entier') or c.affichage in ('monnaie','decimal','entier') }}">{{ c.libelle }}</th>{% endfor %}</tr></thead>
+  <tbody>
+  {% for objet in objets %}
+    <tr>
+    {% for c in colonnes %}
+      <td class="{{ 'nombre' if c.type in ('monnaie','decimal','entier') or c.affichage in ('monnaie','decimal','entier') }}">
+        {% if loop.first %}<a href="{{ module.adresse }}/{{ objet.id }}">{{ module.afficher(objet, c) or '—' }}</a>
+        {% elif c.type == 'image' %}{% if module.valeur(objet, c) %}<img class="vignette" src="/medias/{{ module.valeur(objet, c) }}" alt="">{% else %}<span class="discret">—</span>{% endif %}
+        {% elif c.type == 'booleen' %}{{ '✓' if module.valeur(objet, c) else '—' }}
+        {% elif c.type == 'choix' %}<span class="etiquette">{{ module.afficher(objet, c) }}</span>
+        {% else %}{{ module.afficher(objet, c) }}{% endif %}
+      </td>
+    {% endfor %}
+    </tr>
+  {% else %}
+    <tr><td colspan="{{ colonnes|length }}" class="vide">{{ module.aucun }}{% if q %} pour « {{ q }} »{% endif %}.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% if pages > 1 %}
+<nav class="pagination">
+  {% if page > 1 %}<a href="?q={{ q|urlencode }}&page={{ page - 1 }}">← Précédent</a>{% endif %}
+  <span>Page {{ page }} / {{ pages }}</span>
+  {% if page < pages %}<a href="?q={{ q|urlencode }}&page={{ page + 1 }}">Suivant →</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}
