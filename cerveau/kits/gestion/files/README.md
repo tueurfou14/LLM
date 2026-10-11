@@ -12,6 +12,15 @@ Ouvrir http://127.0.0.1:8000. Au premier démarrage, le compte `admin` est cré�
 s'affiche dans la console et dans `data/admin-initial.txt` (ou fixé par la variable `ADMIN_PASSWORD`).
 La base est le fichier `data/app.db`.
 
+## Fonctions communes à tous les modules
+
+Liste avec recherche et pagination, export CSV, import CSV ou Excel (bouton Importer : tout ou rien,
+liens donnés par leur nom), journal des actions. Modules imprimables : impression, PDF, envoi par mail
+(serveur SMTP dans Paramètres ; mot de passe aussi possible par la variable SMTP_PASSWORD).
+Factures : numérotation continue, verrouillage une fois émises, PDF Factur-X (profil BASIC, XML vérifié
+contre le schéma officiel ; faire valider un exemplaire avant la mise en production), page Impayés
+avec relance par mail.
+
 ## Tester
 
 ```
