@@ -191,9 +191,11 @@ class ChatConsole:
                 except OSError:
                     self.pending_old = None
         self.tool_started_at = time.perf_counter()
-        if name == "run_command" and self.mode != "auto":
+        if name in ("run_command", "start_server") and self.mode != "auto":
             return  # la confirmation prend la main ; le chrono démarre après
         label = f"exécution : {str(args.get('command', ''))[:60]}" if name == "run_command" else f"{name}…"
+        if name == "start_server":
+            label = f"démarrage du serveur : {str(args.get('command', ''))[:60]}"
         self._start_status(f"[dim]{label}[/]")
 
     def _on_tool(self, name: str, args: dict, result: str) -> None:
@@ -201,7 +203,8 @@ class ChatConsole:
         elapsed = time.perf_counter() - self.tool_started_at
         first = (result.splitlines() or [""])[0]
         failed = first.lower().startswith(("erreur", "fichier introuvable", "outil inconnu", "arguments invalides",
-                                           "chemin hors", "l'utilisateur a refusé", "commande interrompue"))
+                                           "chemin hors", "l'utilisateur a refusé", "commande interrompue",
+                                           "échec"))
         if name == "run_command" and first.startswith("code de sortie") and not first.endswith(" 0"):
             failed = True
         mark = ("    ✗ ", "red") if failed else ("    ✓ ", "green")
@@ -212,7 +215,16 @@ class ChatConsole:
             created = "créé" in first or name == "create_directory"
             if created or key not in self.files_touched:
                 self.files_touched[key] = "créé" if created else "modifié"
-        if name in ("write_file", "edit_file") and not failed:
+        if name == "start_server" or (name == "run_command" and first.startswith(("serveur «", "échec : "))):
+            if failed:
+                body = "\n".join(result.splitlines()[1:])[-4000:]
+                if body.strip():
+                    self.out.print(Panel(body, border_style="red", title="démarrage du serveur", title_align="left"))
+            else:
+                url = first.rsplit(" ", 1)[-1]
+                self.out.print(Panel(Text.assemble(("Application en ligne : ", "bold"), (url, "bold cyan underline")),
+                                     border_style="green", title_align="left"))
+        elif name in ("write_file", "edit_file") and not failed:
             self._show_diff(str(args.get("path", "")))
         elif name == "run_command" and (self.verbose or failed):
             body = "\n".join(result.splitlines()[1:])[-4000:]
@@ -249,7 +261,8 @@ class ChatConsole:
     def _confirm(self, name: str, args: dict) -> bool:
         self._stop_live()
         self._stop_status()
-        self.out.print(Panel(Text(args.get("command", ""), style="bold"), title="Le modèle veut exécuter",
+        title = "Le modèle veut lancer un serveur" if name == "start_server" else "Le modèle veut exécuter"
+        self.out.print(Panel(Text(args.get("command", ""), style="bold"), title=title,
                              border_style="yellow", title_align="left"))
         try:
             answer = self.out.input("  Autoriser ? [bold][o/N][/] ").strip().lower()

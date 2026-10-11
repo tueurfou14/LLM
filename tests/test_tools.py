@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 
 import pytest
@@ -175,6 +176,83 @@ def test_server_command_is_stopped_quickly(project: Path, monkeypatch):
     assert not shell.is_server_command("uv run pytest -q")
     assert not shell.is_server_command("npm run build")
     t0 = time.perf_counter()
-    out = shell.run_command(project, "python -c \"import sys; print('started', flush=True); sys.stdin.read() if False else __import__('time').sleep(60)\" --reload")
+    python = Path(sys.executable).as_posix()
+    out = shell.run_command(project, f"\"{python}\" -c \"print('started', flush=True); __import__('time').sleep(60)\" --reload")
     assert time.perf_counter() - t0 < 15
-    assert "serveur arrêté" in out and "started" in out
+    assert "arrêtée par le cerveau" in out and "started" in out
+
+
+def test_web_server_port_detection():
+    from cerveau.tools.shell import web_server_port
+
+    assert web_server_port("uv run uvicorn app.main:app --reload --port 8010") == 8010
+    assert web_server_port("uv run uvicorn app.main:app") == 8000
+    assert web_server_port("npm run dev") == 3000
+    assert web_server_port("python manage.py runserver 0.0.0.0:8080") == 8080
+    assert web_server_port("python3 -m http.server 9000") == 9000
+    assert web_server_port("py -m http.server") == 8000
+    assert web_server_port("uv run pytest -q") is None
+
+
+def _free_port() -> int:
+    import socket
+
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        return sock.getsockname()[1]
+
+
+def test_web_server_keeps_running_until_stopped(project: Path):
+    import urllib.request
+    from cerveau.tools import server, shell
+
+    port = _free_port()
+    python = Path(sys.executable).as_posix()
+    out = shell.run_command(project, f"\"{python}\" -m http.server {port}")
+    try:
+        assert out.startswith("serveur « app » démarré") and f":{port}/" in out
+        assert urllib.request.urlopen(f"http://127.0.0.1:{port}/").status == 200
+        assert "en cours" in server.server_logs(project)
+    finally:
+        assert "arrêté" in server.stop_server(project)
+    assert not server._port_open(port)
+
+
+def test_server_crash_at_startup_is_reported(project: Path):
+    from cerveau.tools import server
+
+    python = Path(sys.executable).as_posix()
+    out = server.start_server(project, f"\"{python}\" -c \"raise SystemExit('boum au démarrage')\"", port=_free_port())
+    assert out.startswith("échec") and "boum au démarrage" in out
+
+
+def test_run_command_cwd_stays_in_project(project: Path):
+    (project / "sous").mkdir()
+    python = Path(sys.executable).as_posix()
+    out = shell_run(project, f"\"{python}\" -c \"import os; print(os.getcwd())\"", cwd="sous")
+    assert out.splitlines()[1].endswith("sous")
+    assert "hors du projet" in shell_run(project, "echo x", cwd="../..")
+
+
+def shell_run(project: Path, command: str, cwd: str) -> str:
+    from cerveau.tools.registry import Registry
+    from cerveau.tools.shell import TOOLS
+
+    reg = Registry()
+    for tool in TOOLS:
+        reg.add(tool)
+    return reg.call("run_command", {"command": command, "cwd": cwd}, project)
+
+
+def test_scaffold_creates_a_complete_base_once(tmp_path: Path):
+    from cerveau.tools.scaffold import scaffold_web_app
+
+    out = scaffold_web_app(tmp_path, "Garage Dupont")
+    assert out.startswith("base créée")
+    for rel in ("pyproject.toml", "app/main.py", "app/routers/clients.py", "app/templates/clients/form.html",
+                "tests/test_clients.py"):
+        assert (tmp_path / rel).is_file(), rel
+    for py in tmp_path.rglob("*.py"):
+        compile(py.read_text(encoding="utf-8"), str(py), "exec")
+    assert 'APP_TITLE = "Garage Dupont"' in (tmp_path / "app/web.py").read_text(encoding="utf-8")
+    assert scaffold_web_app(tmp_path, "x").startswith("échec")

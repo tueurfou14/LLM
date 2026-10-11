@@ -46,7 +46,8 @@ class Registry:
         if tool.dangerous:
             from .shell import is_destructive
 
-            if name == "run_command" and confirm is None and is_destructive(str(arguments.get("command", ""))):
+            if name in ("run_command", "start_server") and confirm is None \
+                    and is_destructive(str(arguments.get("command", ""))):
                 return ("Commande refusée : elle est potentiellement destructrice (suppression hors du projet, "
                         "réécriture d'historique git, arrêt de la machine) et personne n'est là pour la valider. "
                         "Trouve une approche qui reste dans le projet.")
@@ -81,10 +82,10 @@ def _norm(path: str) -> str:
 
 
 def default_registry() -> Registry:
-    from . import files, security, shell, web
+    from . import files, scaffold, security, server, shell, web
 
     reg = Registry()
-    for tool in (*files.TOOLS, *shell.TOOLS, *web.TOOLS, *security.TOOLS):
+    for tool in (*files.TOOLS, *scaffold.TOOLS, *shell.TOOLS, *server.TOOLS, *web.TOOLS, *security.TOOLS):
         reg.add(tool)
     return reg
 

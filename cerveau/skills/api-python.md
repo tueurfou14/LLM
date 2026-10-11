@@ -1,31 +1,27 @@
-# API Python avec FastAPI et SQLite
-mots-clés: api, fastapi, rest, backend, endpoint, route, crud, sqlite, sqlalchemy, base de données, erp, gestion, facture, client, produit, stock
-description: Construire ou étendre une API Python propre avec base de données et tests.
+# Application de gestion (ERP) avec FastAPI et SQLite
+mots-clés: api, fastapi, rest, backend, endpoint, route, crud, sqlite, sqlalchemy, base de données, erp, gestion, facture, client, produit, stock, crm, garage, devis, planning, module
+description: Construire ou étendre une application de gestion : base qui tourne, puis un module à la fois.
 
-Structure attendue dans le dossier source du projet :
-- `main.py` : création de l'application FastAPI et inclusion des routeurs.
-- `database.py` : moteur SQLAlchemy sur SQLite, session, fonction `get_db`.
-- `models.py` : modèles SQLAlchemy, une classe par table.
-- `schemas.py` : modèles Pydantic d'entrée et de sortie, jamais les modèles SQLAlchemy directement.
-- `routers/<module>.py` : un routeur par domaine métier (clients, produits, factures...), avec les opérations lister, lire, créer, modifier, supprimer.
-- `tests/test_<module>.py` : tests avec `TestClient` et une base SQLite en mémoire.
+Structure fixe, quel que soit le nom du dossier. Tout se lance depuis la racine, les imports partent de `app` :
+- `app/main.py` : application, `app.include_router(...)` de chaque module
+- `app/database.py` : SQLite, `Base`, `get_db` ; `app/models.py` : une classe par table
+- `app/web.py` : liste `MODULES` du menu ; `app/routers/<module>.py` ; `app/templates/<module>/liste.html` et `form.html`
+- `tests/conftest.py` (fixture `http`, base en mémoire) ; `tests/test_<module>.py`
 
-Règles :
-- Un domaine métier à la fois. Pour un ERP, l'ordre raisonnable est : clients, produits, stock, factures, puis les rapports.
-- Valide les entrées avec Pydantic : types, longueurs, valeurs positives pour les quantités et prix.
-- Jamais de SQL brut construit par concaténation : utilise l'ORM ou des requêtes paramétrées.
-- Les identifiants sont des entiers auto-incrémentés ; renvoie 404 quand un objet n'existe pas.
-- Chaque routeur ajouté est testé : au minimum création, lecture, et un cas d'erreur.
-- Après écriture, propose `run_command` avec `uv run pytest -q` et corrige ce qui échoue avant de passer à la suite.
+Démarrage, dossier vide : `scaffold_web_app` avec le nom de l'application. Ne réécris jamais cette base à la main.
 
-Dépendances minimales : `fastapi`, `uvicorn`, `sqlalchemy`, `pydantic`, `pytest`, `httpx`, déclarées dans `pyproject.toml`.
-Installation : `uv venv` une fois, puis `uv pip install -e .`. Lancement : `uv run uvicorn <paquet>.main:app --reload`.
+Ajouter un module, par exemple vehicules :
+1. `read_file` sur `app/routers/clients.py`, `app/templates/clients/liste.html`, `form.html` et `tests/test_clients.py`.
+2. `edit_file` sur `app/models.py` : classe `Vehicule` copiée de `Client`. Lien vers un client : `client_id: Mapped[int] = mapped_column(ForeignKey("clients.id"))`.
+3. `write_file` de `app/routers/vehicules.py`, des deux templates et de `tests/test_vehicules.py`, copiés de clients en changeant noms et champs.
+4. `edit_file` sur `app/main.py` (import + `include_router`) et `app/web.py` (ligne dans `MODULES`).
+5. `run_command` « uv run pytest -q ». Corrige jusqu'au vert avant le module suivant.
 
+Ordre conseillé pour un ERP : clients, produits ou véhicules, devis, factures, stock, tableau de bord.
 
-## Diagnostics fréquents (lis ceci avant de relancer les tests une troisième fois)
-- **404 sur une route qui existe** : le routeur n'est pas inclus dans `main.py` (`app.include_router(clients.router)`), ou son `prefix` ne correspond pas à l'URL testée (`/clients` vs `/api/clients`), ou le test importe une autre `app`. Ouvre `main.py` et le routeur, compare les chemins exacts.
-- **`KeyError: 'id'` dans un test** : la réponse n'est pas celle attendue, presque toujours à cause d'un 404 ou d'un 422 juste avant. Affiche `response.json()` dans l'assertion.
-- **422** : le corps envoyé ne respecte pas le schéma Pydantic ; compare les champs du test et de `schemas.py`.
-- **`detail` en anglais (« Not Found »)** : c'est le 404 par défaut de FastAPI, la route n'a pas été atteinte ; voir le premier point.
-- **Base vide entre les tests** : utiliser une base SQLite en mémoire par test ou `Base.metadata.create_all` dans une fixture.
-- **Ne lance jamais `uvicorn` ou un serveur pour déboguer** : il ne se termine pas. Les tests avec `TestClient` couvrent le même chemin, sans serveur.
+Diagnostics :
+- `ModuleNotFoundError: No module named 'models'` : l'import doit être `from app.models import ...`.
+- 404 sur une route qui existe : routeur absent de `app/main.py`, ou `prefix` différent de l'URL testée.
+- 422 : un champ obligatoire du formulaire (`Form(...)`) manque dans les données envoyées.
+- `no such column` : champ ajouté à une table existante ; en développement, supprime `data/app.db`.
+- Montrer l'application : `start_server` « uv run uvicorn app.main:app --reload --port 8000 », puis donne l'adresse. Pour déboguer, préfère les tests.

@@ -90,3 +90,18 @@ def test_ensure_context_refuses_beyond_maximum(fake_ollama):
     url, _ = fake_ollama
     with pytest.raises(Exception, match="au plus"):
         ollama.ensure_context(url, "base:7b", 65536)
+
+
+def test_compact_never_drops_the_current_request():
+    """Pendant une longue série d'outils, la demande de l'utilisateur doit rester visible."""
+    msgs = [{"role": "system", "content": "consigne"}, {"role": "user", "content": "Fais l'ERP du garage"}]
+    for i in range(8):
+        msgs.append({"role": "assistant", "content": None,
+                     "tool_calls": [{"id": str(i), "function": {"name": "read_file", "arguments": "{}"}}]})
+        msgs.append({"role": "tool", "tool_call_id": str(i), "content": "x" * 8000})
+    compact_messages(msgs, budget_tokens=4000)
+    assert msgs[1] == {"role": "user", "content": "Fais l'ERP du garage"}
+    assert msgs[-1]["role"] == "tool" and msgs[-2]["role"] == "assistant"
+    for i, m in enumerate(msgs):   # aucun résultat d'outil orphelin
+        if m["role"] == "tool":
+            assert msgs[i - 1]["role"] in ("assistant", "tool")

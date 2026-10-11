@@ -124,7 +124,7 @@ def test_skill_injected_for_matching_request(tmp_path):
     agent.ask("fais un audit de sécurité")
     system = agent.client.calls[0][0]["content"]
     assert "Skill : Audit de sécurité" in system
-    assert "- write_file :" in system
+    assert "write_file" in system and "start_server" in system
 
 
 def test_timeout_becomes_llm_error():
@@ -222,3 +222,27 @@ def test_identical_tool_calls_are_cut_short(tmp_path):
     assert "same" in tool_msgs[0]
     assert "Résultat identique" in tool_msgs[1]
     assert tool_msgs[2].startswith("STOP") and tool_msgs[3].startswith("STOP")
+
+
+def test_project_tree_in_system_prompt(tmp_path):
+    agent = make_agent(tmp_path, [Reply(content="ok")])
+    (tmp_path / "app").mkdir()
+    (tmp_path / "app" / "models.py").write_text("")
+    agent.ask("où sont les modèles ?")
+    system = agent.client.calls[0][0]["content"]
+    assert "app/\n  models.py" in system and "main.py" in system
+
+
+def test_autonomous_steps_follow_plan_phases(tmp_path):
+    agent = make_agent(tmp_path, [Reply(content="Plan écrit. ÉTAT : EN COURS"), Reply(content="Fait. ÉTAT : TERMINÉ")])
+    (tmp_path / "PLAN.md").write_text("- [x] Base\n- [ ] Module véhicules\n- [ ] Module factures\n")
+    agent.ask_autonomous("ERP garage, sois autonome")
+    second_prompt = agent.client.calls[1][-1]["content"]
+    assert "Module véhicules" in second_prompt and "ERP garage" in second_prompt
+
+
+def test_autonomous_stops_when_plan_is_fully_checked(tmp_path):
+    agent = make_agent(tmp_path, [Reply(content="ÉTAT : EN COURS")])
+    (tmp_path / "PLAN.md").write_text("- [x] Base\n- [x] Clients\n")
+    agent.ask_autonomous("continue")
+    assert len(agent.client.calls) == 1

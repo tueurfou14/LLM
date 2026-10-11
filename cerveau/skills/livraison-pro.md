@@ -21,6 +21,7 @@ Passe chacun de ces points, même brièvement :
 `PLAN.md` contient : le périmètre, les décisions d'architecture et leurs raisons, la pile technique avec versions vérifiées, et la liste des phases sous forme de cases à cocher. Chaque phase se termine par des tests verts.
 
 ## 3. Exécution
+- Phase 1, toujours : une application qui démarre et que l'utilisateur peut ouvrir (`scaffold_web_app` pour une application de gestion, puis `start_server`). Chaque phase suivante est petite : un module ou un aspect, cinq fichiers au plus.
 - Une phase à la fois. Après chaque phase : `uv run pytest -q`, correction, puis coche la case dans PLAN.md avec `edit_file`.
 - Code lisible : noms explicites, fonctions courtes, docstrings pour ce qui n'est pas évident, aucun secret en dur, aucun TODO laissé sans ticket dans PLAN.md.
 - Quand une bibliothèque est en cause, lis sa documentation officielle avec `web_fetch` plutôt que de deviner.

@@ -21,19 +21,24 @@ from .config import HOME, Config
 from .llm import Client, Reply, ToolCall
 from .memory import GLOBAL, MemoryStore
 from .tools import Registry, default_registry
+from .tools.files import project_tree
 from .tools.shell import describe_environment
 
-SYSTEM_PROMPT = """Tu es Cerveau, un développeur senior et auditeur de sécurité. Tu travailles dans le dossier du projet « {project} », dont le chemin complet est {root}. C'est ta racine : tous les chemins que tu donnes aux outils sont relatifs à elle, avec des barres obliques. Exemples corrects : « README.md », « {project_lower}/models.py », « tests/test_models.py ». Incorrects : « {root}/x » (absolu), « {project}/{project_lower}/models.py » (nom du projet répété), « /x » (barre initiale). Pour créer un sous-dossier, create_directory avec son chemin relatif ; write_file crée seul les dossiers parents.
+SYSTEM_PROMPT = """Tu es Cerveau, un développeur senior et auditeur de sécurité. Tu travailles dans le dossier du projet « {project} », dont le chemin complet est {root}. C'est ta racine : tous les chemins que tu donnes aux outils sont relatifs à elle, avec des barres obliques. Exemples corrects : « README.md », « app/models.py », « tests/test_clients.py ». Incorrects : « {root}/x » (absolu), « {project}/app/models.py » (nom du projet répété), « /x » (barre initiale). write_file crée seul les dossiers parents. Les commandes partent elles aussi de la racine.
 
-Tu disposes des outils suivants, à appeler via le mécanisme d'appel d'outils (jamais en décrivant l'appel dans ta réponse) :
-{tools}
+Contenu actuel du projet :
+{tree}
+
+Outils, à appeler via le mécanisme d'appel d'outils (jamais en décrivant l'appel dans ta réponse) : {tools}.
 
 Utilise-les : tu agis, tu ne te contentes pas de décrire. Tu ne peux pas écrire en dehors de la racine du projet ; si l'utilisateur veut travailler ailleurs, dis-lui de relancer « cerveau chat <dossier> ».
 
 Environnement d'exécution : {environment}.
-Pour un projet Python : crée l'environnement une fois avec « uv venv », installe avec « uv pip install -e . » ou « uv pip install <paquet> », lance avec « uv run pytest -q » ou « uv run python … ». N'utilise jamais « pip » seul. Ne lance les scanners de sécurité que si l'utilisateur demande un audit.
+Pour un projet Python : « uv run pytest -q » ou « uv run python … » ; s'il y a un pyproject.toml, uv run installe seul les dépendances, et « uv add <paquet> » en ajoute une. N'utilise jamais « pip » seul. Ne lance les scanners de sécurité que si l'utilisateur demande un audit.
 
 Méthode :
+- Nouvelle application de gestion (ERP, CRM, stock, facturation, planning…) : appelle d'abord scaffold_web_app, qui pose une base qui tourne avec un module Clients complet, puis ajoute les autres modules un par un en copiant Clients. Tu ne réécris pas cette base.
+- Pour lancer l'application et la montrer à l'utilisateur : start_server (jamais run_command), puis donne-lui l'adresse. Lancé avec --reload, le serveur se recharge seul quand tu modifies le code. Une erreur 500 : server_logs.
 - Pour une tâche de code, annonce en deux lignes ce que tu vas faire, puis crée ou modifie les fichiers avec write_file et edit_file. Un projet complet se construit par étapes : commence par la structure et un premier module qui fonctionne, puis étends. Ne demande pas de permission pour écrire dans le projet.
 - Tu restes dans le périmètre demandé. Tu ne crées pas de modules, fonctionnalités ou fichiers que l'utilisateur n'a pas demandés. Si quelque chose manque pour que ça fonctionne, fais le strict minimum et signale-le dans ton résumé.
 - Tu n'inventes jamais le contenu d'un fichier existant : tu le lis d'abord.
@@ -128,10 +133,9 @@ class Agent:
             skills_text = "\nProcédures à suivre pour cette demande :\n\n" + skills_mod.render(chosen) + "\n"
             if self.debug:
                 print(f"[debug] skills : {', '.join(s.name for s in chosen)}", file=sys.stderr)
-        tools_text = "\n".join(f"- {t['function']['name']} : {t['function']['description']}"
-                               for t in self.registry.schemas())
-        return SYSTEM_PROMPT.format(project=self.project, project_lower=re.sub(r"[^a-z0-9_]", "_", self.project.lower()),
-                                    root=str(self.root), tools=tools_text, skills=skills_text, memories=text,
+        tools_text = ", ".join(self.registry.names())
+        return SYSTEM_PROMPT.format(project=self.project, root=str(self.root), tools=tools_text,
+                                    tree=project_tree(self.root), skills=skills_text, memories=text,
                                     environment=describe_environment(self.root))
 
     # --- boucle ---------------------------------------------------------------
@@ -148,9 +152,11 @@ class Agent:
         seen: dict[str, int] = {}          # même outil + mêmes arguments, combien de fois dans cette réponse
         last_results: dict[str, str] = {}  # dernier résultat par appel identique
         limit = getattr(self.config, "max_tool_rounds", MAX_TOOL_ROUNDS) or MAX_TOOL_ROUNDS
+        # Les schémas d'outils sont envoyés à chaque appel et occupent le contexte comme le reste.
+        budget = self.config.context_tokens - RESERVE_TOKENS - _estimate_tokens(json.dumps(tools, ensure_ascii=False))
         for _ in range(limit):
             stats.rounds += 1
-            compact_messages(messages, self.config.context_tokens - RESERVE_TOKENS)
+            compact_messages(messages, budget)
             reply = self._round(messages, tools, stats)
             if self.debug:
                 print(f"[debug] réponse brute : {reply!r}"[:1500], file=sys.stderr)
@@ -230,7 +236,17 @@ class Agent:
         for step in range(1, limit + 1):
             if on_step:
                 on_step(step, limit)
-            answer = self.ask(task if step == 1 else self.CONTINUE_PROMPT)
+            if step == 1:
+                prompt = task
+            else:
+                phase = next_plan_phase(self.root)
+                if phase == "":
+                    return answer       # toutes les cases de PLAN.md sont cochées
+                prompt = self.CONTINUE_PROMPT if phase is None else (
+                    f"Continue en autonomie. Phase suivante de PLAN.md : « {phase} ». Tâche d'origine : "
+                    f"{task[:300]}. Réalise uniquement cette phase, vérifie avec les tests, coche-la dans PLAN.md "
+                    "avec edit_file. Termine par la ligne ÉTAT.")
+            answer = self.ask(prompt)
             if self.DONE_MARKER.search(answer):
                 return answer
             if self.CONTINUE_MARKER.search(answer):
@@ -319,6 +335,17 @@ class Agent:
         return self.store.remember(self.project, content, kind=kind)
 
 
+def next_plan_phase(root: Path) -> str | None:
+    """Première case non cochée de PLAN.md ; "" si tout est coché, None sans plan."""
+    plan = root / "PLAN.md"
+    if not plan.is_file():
+        return None
+    boxes = re.findall(r"^\s*[-*]\s*\[( |x|X)\]\s*(.+)$", plan.read_text(encoding="utf-8", errors="replace"), re.M)
+    if not boxes:
+        return None
+    return next((text.strip() for mark, text in boxes if mark == " "), "")
+
+
 def compact_messages(messages: list[dict], budget_tokens: int) -> int:
     """Garde la conversation sous le budget, sur place. D'abord on raccourcit
     les résultats d'outils anciens, puis on retire les plus vieux échanges
@@ -335,15 +362,31 @@ def compact_messages(messages: list[dict], budget_tokens: int) -> int:
             touched += 1
         if _messages_tokens(messages) <= budget_tokens:
             return touched
-    # Retirer les plus anciens échanges, en gardant la consigne (index 0) et le dernier message utilisateur.
-    while len(messages) > 2 and _messages_tokens(messages) > budget_tokens:
-        victim = 1
-        # Ne jamais laisser un résultat d'outil orphelin : on retire l'assistant et ses outils ensemble.
+    # Retirer les plus anciens échanges, en gardant la consigne (index 0), la demande en cours (dernier
+    # message utilisateur) et le dernier tour d'outils. Un assistant part toujours avec ses résultats
+    # d'outils : jamais de résultat orphelin.
+    while _messages_tokens(messages) > budget_tokens:
+        current = max((i for i, m in enumerate(messages) if m.get("role") == "user"), default=len(messages) - 1)
+        if current > 1:
+            victim = 1                        # un échange plus ancien que la demande en cours
+        else:
+            turns = [i for i in range(current + 1, len(messages)) if messages[i].get("role") == "assistant"]
+            if len(turns) < 2:
+                break
+            victim = turns[0]                 # le plus vieux tour d'outils de la demande en cours
         messages.pop(victim)
         touched += 1
-        while len(messages) > 2 and messages[victim].get("role") == "tool":
+        while victim < len(messages) and messages[victim].get("role") == "tool":
             messages.pop(victim)
             touched += 1
+    # Encore trop long : on raccourcit aussi les résultats récents, sauf le tout dernier.
+    if _messages_tokens(messages) > budget_tokens:
+        tool_indexes = [i for i, m in enumerate(messages) if m.get("role") == "tool"]
+        for i in tool_indexes[:-1]:
+            content = messages[i].get("content") or ""
+            if len(content) > 1500:
+                messages[i]["content"] = content[:1200] + "\n… [résultat raccourci pour tenir dans le contexte]"
+                touched += 1
     return touched
 
 

@@ -62,6 +62,31 @@ def list_files(root: Path, pattern: str = "*", max_results: int = 200) -> str:
     return "\n".join(out) or "aucun fichier"
 
 
+def project_tree(root: Path, max_entries: int = 60, max_depth: int = 4) -> str:
+    """Arborescence courte du projet, injectée dans la consigne : le modèle voit
+    où sont les fichiers sans avoir à les chercher."""
+    lines: list[str] = []
+
+    def walk(folder: Path, depth: int) -> bool:
+        try:
+            entries = sorted(folder.iterdir(), key=lambda p: (p.is_file(), p.name.lower()))
+        except OSError:
+            return True
+        for entry in entries:
+            if entry.name in IGNORED or entry.name.startswith(".") and entry.is_dir():
+                continue
+            if len(lines) >= max_entries:
+                lines.append("  " * depth + "…")
+                return False
+            lines.append("  " * depth + entry.name + ("/" if entry.is_dir() else ""))
+            if entry.is_dir() and depth + 1 < max_depth and not walk(entry, depth + 1):
+                return False
+        return True
+
+    walk(root, 0)
+    return "\n".join(lines) or "(dossier vide)"
+
+
 def read_file(root: Path, path: str, start_line: int = 1, max_lines: int = 300) -> str:
     target = safe_path(root, path)
     if not target.is_file():
