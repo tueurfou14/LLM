@@ -1,0 +1,11 @@
+{
+  "titre": "Application de gestion",
+  "description": "ERP, CRM, gestion commerciale, stock, GMAO, planning, facturation : FastAPI + SQLite + pages HTML, connexion et rôles, journal, documents imprimables.",
+  "mots_cles": ["erp", "crm", "gestion", "facturation", "facture", "devis", "stock", "gmao", "planning", "logiciel", "application", "back-office", "intranet"],
+  "port": 8000,
+  "test": "uv run pytest -q",
+  "start": "uv run uvicorn app.main:app --reload --port {port}",
+  "sante": "/sante",
+  "renommer": {"_gitignore": ".gitignore"},
+  "suite": "La base contient déjà : connexion et rôles, utilisateurs, journal, paramètres de la société, et les modules clients, articles (catalogue), devis (transformables en facture), factures (numérotation légale, verrouillées une fois émises) et interventions (planning). Tout est testé.\nPour ajouter un module métier : add_module (un fichier déclaratif app/modules/<nom>.py est généré, avec table, pages, recherche, export, droits et tests automatiques). Pour une règle métier : lis le module concerné puis modifie-le (avant_enregistrement, actions, calculs). Un module inutile : delete_file sur son fichier.\nAprès chaque changement : verify_project. Le mot de passe admin s'affiche au premier démarrage (server_logs) et dans data/admin-initial.txt."
+}

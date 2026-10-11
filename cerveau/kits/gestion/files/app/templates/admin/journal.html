@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block contenu %}
+<h1>Journal des actions</h1>
+<div class="tableau">
+<table>
+  <thead><tr><th>Date</th><th>Utilisateur</th><th>Action</th><th>Module</th><th>Détail</th></tr></thead>
+  <tbody>
+  {% for j in lignes %}
+    <tr><td>{{ j.date|date_fr }}</td><td>{{ j.utilisateur }}</td><td>{{ j.action }}</td>
+      <td>{% if j.module %}<a href="?module={{ j.module }}">{{ j.module }}</a>{% endif %}</td>
+      <td>{% if j.objet_id and j.module not in ('utilisateurs', 'parametres') %}<a href="/{{ j.module }}/{{ j.objet_id }}">{{ j.detail or '#' ~ j.objet_id }}</a>{% else %}{{ j.detail }}{% endif %}</td></tr>
+  {% else %}<tr><td colspan="5" class="vide">Rien pour l'instant.</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+<nav class="pagination">{% if page > 1 %}<a href="?module={{ module }}&page={{ page - 1 }}">← Plus récent</a>{% endif %}
+{% if lignes|length == 100 %}<a href="?module={{ module }}&page={{ page + 1 }}">Plus ancien →</a>{% endif %}</nav>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "_base.html" %}
+{% set titre = "À propos" %}
+{% set description = "Qui sommes-nous ? Découvrez " ~ site.nom ~ ", son équipe et ses valeurs." %}
+{% block contenu %}
+    <section class="entete-page">
+      <div class="conteneur" data-anim>
+        <p class="surtitre">Qui sommes-nous</p>
+        <h1>{{ site.a_propos.titre }}</h1>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="conteneur deux-colonnes">
+        <div class="texte" data-anim>
+{% for paragraphe in site.a_propos.paragraphes %}
+          <p>{{ paragraphe }}</p>
+{% endfor %}
+        </div>
+        <div class="illustration" data-anim>
+          <img src="{{ site.a_propos.image }}" alt="{{ site.a_propos.image_alt }}" width="800" height="600" loading="lazy">
+        </div>
+      </div>
+    </section>
+
+{% if site.a_propos.valeurs %}
+    <section class="section section--alt">
+      <div class="conteneur">
+        <div class="section__tete" data-anim>
+          <p class="surtitre">Ce qui nous guide</p>
+          <h2>Nos valeurs</h2>
+        </div>
+        <div class="cartes">
+{% for valeur in site.a_propos.valeurs %}
+          <article class="carte" data-anim>
+            <h3>{{ valeur.titre }}</h3>
+            <p>{{ valeur.texte }}</p>
+          </article>
+{% endfor %}
+        </div>
+      </div>
+    </section>
+{% endif %}
+
+{% include "_bandeau-contact.html" %}
+{% endblock %}

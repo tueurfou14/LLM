@@ -246,3 +246,31 @@ def test_autonomous_stops_when_plan_is_fully_checked(tmp_path):
     (tmp_path / "PLAN.md").write_text("- [x] Base\n- [x] Clients\n")
     agent.ask_autonomous("continue")
     assert len(agent.client.calls) == 1
+
+
+def _agent_avec_verification(tmp_path, replies, verdicts):
+    from cerveau.tools.registry import Tool
+
+    agent = make_agent(tmp_path, replies)
+    (tmp_path / ".cerveau").mkdir()
+    (tmp_path / ".cerveau" / "kit.json").write_text('{"nom": "gestion"}')
+    file = list(verdicts)
+    agent.registry.add(Tool("verify_project", "", {"type": "object", "properties": {}}, lambda root: file.pop(0)))
+    return agent
+
+
+def test_autonomie_refuse_une_etape_que_la_verification_rejette(tmp_path):
+    agent = _agent_avec_verification(
+        tmp_path,
+        [Reply(content="Fini. ÉTAT : TERMINÉ"), Reply(content="Corrigé. ÉTAT : TERMINÉ")],
+        ["ÉCHEC des tests. Corrige avant toute autre chose :\nFAILED tests/test_vehicules.py", "OK : tests verts"])
+    answer = agent.ask_autonomous("ERP garage, sois autonome")
+    assert answer.startswith("Corrigé")
+    second_prompt = agent.client.calls[1][-1]["content"]
+    assert "Vérification du cerveau en échec" in second_prompt and "test_vehicules" in second_prompt
+
+
+def test_autonomie_sans_kit_ne_verifie_pas(tmp_path):
+    agent = make_agent(tmp_path, [Reply(content="ÉTAT : TERMINÉ")])
+    assert agent._verify() is None
+    assert agent.ask_autonomous("x").endswith("TERMINÉ")

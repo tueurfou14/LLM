@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% set titre_objet = module.libelle_objet(objet) if objet else module.nouveau %}
+{% block titre %}{{ titre_objet }} · {{ titre_app }}{% endblock %}
+{% block contenu %}
+<div class="barre">
+  <h1><a class="discret" href="/{{ module.nom }}/">{{ module.libelle }}</a> / {{ titre_objet }}</h1>
+  {% if objet %}
+  <div class="boutons">
+    {% if module.imprimable %}<a class="bouton secondaire" href="/{{ module.nom }}/{{ objet.id }}/imprimer" target="_blank">Imprimer / PDF</a>{% endif %}
+    {% if peut_ecrire %}{% for a in actions %}
+    <form method="post" action="/{{ module.nom }}/{{ objet.id }}/action/{{ a.nom }}"><button type="submit" class="secondaire">{{ a.libelle }}</button></form>
+    {% endfor %}{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% if verrouille %}<div class="flash info">{{ module.ce }} est verrouillé{{ module.e }} : seuls {{ module.modifiable_si_verrouille|join(', ') or 'aucun champ' }} restent modifiables.</div>{% endif %}
+{% if erreurs.get('_') %}<div class="flash erreur">{{ erreurs['_'] }}</div>{% endif %}
+{% if erreurs %}{% for cle, message in erreurs.items() if cle.startswith((module.lignes.nom if module.lignes else '_x') ~ '-') %}<div class="flash erreur">{{ message }}</div>{% endfor %}{% endif %}
+<form method="post" action="{{ '/' ~ module.nom ~ '/' ~ objet.id if objet else '/' ~ module.nom ~ '/nouveau' }}" class="formulaire large">
+  <div class="grille">
+  {% for c in module.champs if not (module.lignes and c.type == 'calcul') %}
+    {% set v = valeurs[c.nom] if valeurs is not none and c.nom in valeurs else (module.valeur(objet, c) if objet else none) %}
+    {% set bloque = not peut_ecrire or (verrouille and c.nom not in module.modifiable_si_verrouille) %}
+    <label class="{{ 'plein' if c.type == 'texte_long' }}">{{ c.libelle }}{% if c.requis %} *{% endif %}
+      {% with erreur=erreurs.get(c.nom), prefixe='' %}{% include "module/_champ.html" %}{% endwith %}
+      {% if c.aide %}<small>{{ c.aide }}</small>{% endif %}
+    </label>
+  {% endfor %}
+  </div>
+  {% if module.lignes %}
+  {% set L = module.lignes %}
+  {% set bloque_lignes = not peut_ecrire or verrouille %}
+  <h2>{{ L.libelle }}</h2>
+  <div class="tableau">
+  <table class="lignes" data-lignes="{{ L.nom }}">
+    <thead><tr>{% for c in L.champs %}<th>{{ c.libelle }}</th>{% endfor %}{% if not bloque_lignes %}<th></th>{% endif %}</tr></thead>
+    <tbody>
+    {% set existantes = lignes_saisies if lignes_saisies is not none else (objet[L.nom] if objet else []) %}
+    {% for ligne in existantes %}
+      {% set i = loop.index0 %}
+      <tr>{% for c in L.champs %}
+        {% set v = (ligne.get(c.colonne) if ligne is mapping else (module.valeur(ligne, c))) %}
+        <td>{% with erreur=none, bloque=bloque_lignes, prefixe=L.nom ~ '-' ~ i ~ '-' %}{% include "module/_champ.html" %}{% endwith %}</td>
+      {% endfor %}{% if not bloque_lignes %}<td><button type="button" class="lien" data-retirer>✕</button></td>{% endif %}</tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% if not bloque_lignes %}
+  <template data-modele="{{ L.nom }}"><tr>{% for c in L.champs %}
+    <td>{% with v=c.valeur_defaut(), erreur=none, bloque=false, prefixe=L.nom ~ '-__i__-' %}{% include "module/_champ.html" %}{% endwith %}</td>
+  {% endfor %}<td><button type="button" class="lien" data-retirer>✕</button></td></tr></template>
+  <button type="button" class="secondaire" data-ajouter="{{ L.nom }}">+ Ajouter une ligne</button>
+  {% endif %}
+  {% if objet %}
+  <table class="totaux">
+    {% for c in module.champs if c.type == 'calcul' %}<tr><th>{{ c.libelle }}</th><td>{{ module.afficher(objet, c) }}</td></tr>{% endfor %}
+  </table>
+  {% endif %}
+  {% endif %}
+  <div class="boutons">
+    {% if peut_ecrire %}<button type="submit">Enregistrer</button>{% endif %}
+    <a href="/{{ module.nom }}/">Retour à la liste</a>
+  </div>
+</form>
+{% if objet and peut_ecrire and module.suppression and not verrouille %}
+<form method="post" action="/{{ module.nom }}/{{ objet.id }}/supprimer" class="supprimer" data-confirmer="Supprimer {{ module.ce|lower }} ?">
+  <button type="submit" class="danger">Supprimer</button>
+</form>
+{% endif %}
+{% endblock %}

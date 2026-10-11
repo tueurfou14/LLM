@@ -1,0 +1,27 @@
+* { box-sizing: border-box; }
+body { margin: 0; font: 12.5px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #1c2230; background: #e9ebef; }
+.filigrane { position: absolute; top: 40%; left: 0; right: 0; text-align: center; font-size: 110px; font-weight: 800; color: rgba(194, 65, 12, .08); transform: rotate(-30deg); pointer-events: none; }
+.page { position: relative; width: 210mm; min-height: 297mm; margin: 16px auto; padding: 16mm 15mm; background: #fff; display: flex; flex-direction: column; }
+.actions-ecran { text-align: center; padding-top: 16px; }
+.actions-ecran button { padding: 8px 16px; font: inherit; border: 0; border-radius: 6px; background: #2456d3; color: #fff; cursor: pointer; }
+header { display: flex; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
+.emetteur, .destinataire { display: grid; gap: 2px; max-width: 48%; }
+.destinataire { border: 1px solid #e3e6eb; border-radius: 6px; padding: 10px 14px; min-width: 40%; align-self: flex-start; }
+.logo { max-height: 56px; max-width: 160px; margin-bottom: 6px; }
+.multi { white-space: pre-line; }
+h1 { font-size: 20px; margin: 0 0 12px; }
+dl.infos { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; margin: 0 0 18px; }
+dt { color: #697386; }
+dd { margin: 0; }
+table { width: 100%; border-collapse: collapse; }
+table.lignes th { text-align: left; border-bottom: 2px solid #1c2230; padding: 6px; font-size: 11.5px; }
+table.lignes td { border-bottom: 1px solid #e3e6eb; padding: 6px; }
+.nombre { text-align: right; white-space: nowrap; }
+table.totaux { width: auto; margin: 14px 0 0 auto; min-width: 45%; }
+table.totaux th { text-align: left; font-weight: 400; color: #697386; padding: 4px 12px 4px 0; }
+table.totaux td { text-align: right; padding: 4px 0; white-space: nowrap; }
+table.totaux tr:last-child th, table.totaux tr:last-child td { font-weight: 700; color: #1c2230; border-top: 2px solid #1c2230; padding-top: 6px; }
+h3 { font-size: 13px; margin: 20px 0 4px; }
+footer { margin-top: auto; padding-top: 18px; border-top: 1px solid #e3e6eb; color: #697386; font-size: 10.5px; display: grid; gap: 4px; }
+@page { size: A4; margin: 0; }
+@media print { body { background: #fff; } .actions-ecran { display: none; } .page { margin: 0; box-shadow: none; } }

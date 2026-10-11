@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block contenu %}
+<h1>Mon compte</h1>
+<p class="discret">Identifiant : {{ utilisateur.identifiant }}</p>
+<form method="post" class="formulaire">
+  {% if erreur %}<div class="flash erreur">{{ erreur }}</div>{% endif %}
+  <label>Mot de passe actuel <input name="actuel" type="password" required autocomplete="current-password"></label>
+  <label>Nouveau mot de passe (10 caractères au moins) <input name="nouveau" type="password" required minlength="10" autocomplete="new-password"></label>
+  <label>Confirmation <input name="confirmation" type="password" required minlength="10" autocomplete="new-password"></label>
+  <div class="boutons"><button type="submit">Changer le mot de passe</button></div>
+</form>
+{% endblock %}

@@ -196,6 +196,18 @@ def edit_file(root: Path, path: str, old: str, new: str) -> str:
     return f"modifié : {path}"
 
 
+def delete_file(root: Path, path: str) -> str:
+    """Supprime un fichier du projet (jamais un dossier)."""
+    target = safe_path(root, path)
+    shown = target.relative_to(root.resolve()).as_posix()
+    if any(part in IGNORED for part in Path(shown).parts):
+        return f"refusé : {shown} est dans un dossier protégé"
+    if not target.is_file():
+        return f"fichier introuvable : {path}"
+    target.unlink()
+    return f"supprimé : {shown}"
+
+
 def create_directory(root: Path, path: str) -> str:
     """Crée un dossier, parents compris."""
     target = safe_path(root, path)
@@ -231,6 +243,12 @@ TOOLS += [
             "required": ["path", "old", "new"],
         },
         run=edit_file,
+    ),
+    Tool(
+        name="delete_file",
+        description="Supprime un fichier du projet.",
+        parameters={"type": "object", "properties": {"path": {"type": "string"}}, "required": ["path"]},
+        run=delete_file,
     ),
     Tool(
         name="create_directory",

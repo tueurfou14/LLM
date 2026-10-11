@@ -22,6 +22,7 @@ from .llm import Client, Reply, ToolCall
 from .memory import GLOBAL, MemoryStore
 from .tools import Registry, default_registry
 from .tools.files import project_tree
+from .tools.projets import checkpoint, kit_du_projet, set_aside
 from .tools.shell import describe_environment
 
 SYSTEM_PROMPT = """Tu es Cerveau, un développeur senior et auditeur de sécurité. Tu travailles dans le dossier du projet « {project} », dont le chemin complet est {root}. C'est ta racine : tous les chemins que tu donnes aux outils sont relatifs à elle, avec des barres obliques. Exemples corrects : « README.md », « app/models.py », « tests/test_clients.py ». Incorrects : « {root}/x » (absolu), « {project}/app/models.py » (nom du projet répété), « /x » (barre initiale). write_file crée seul les dossiers parents. Les commandes partent elles aussi de la racine.
@@ -37,7 +38,8 @@ Environnement d'exécution : {environment}.
 Pour un projet Python : « uv run pytest -q » ou « uv run python … » ; s'il y a un pyproject.toml, uv run installe seul les dépendances, et « uv add <paquet> » en ajoute une. N'utilise jamais « pip » seul. Ne lance les scanners de sécurité que si l'utilisateur demande un audit.
 
 Méthode :
-- Nouvelle application de gestion (ERP, CRM, stock, facturation, planning…) : appelle d'abord scaffold_web_app, qui pose une base qui tourne avec un module Clients complet, puis ajoute les autres modules un par un en copiant Clients. Tu ne réécris pas cette base.
+- Nouveau projet dans un dossier vide : create_project avec le kit adapté (gestion pour un ERP, CRM, stock, facturation, GMAO, planning… ; site pour un site vitrine). Le kit est une base complète et testée : tu ne la réécris pas, tu l'adaptes. Dans un projet gestion, un module métier s'ajoute avec add_module.
+- Une étape n'est terminée que si verify_project répond OK.
 - Pour lancer l'application et la montrer à l'utilisateur : start_server (jamais run_command), puis donne-lui l'adresse. Lancé avec --reload, le serveur se recharge seul quand tu modifies le code. Une erreur 500 : server_logs.
 - Pour une tâche de code, annonce en deux lignes ce que tu vas faire, puis crée ou modifie les fichiers avec write_file et edit_file. Un projet complet se construit par étapes : commence par la structure et un premier module qui fonctionne, puis étends. Ne demande pas de permission pour écrire dans le projet.
 - Tu restes dans le périmètre demandé. Tu ne crées pas de modules, fonctionnalités ou fichiers que l'utilisateur n'a pas demandés. Si quelque chose manque pour que ça fonctionne, fais le strict minimum et signale-le dans ton résumé.
@@ -227,16 +229,26 @@ class Agent:
         low = message.lower()
         return any(t in low for t in cls.AUTONOMY_TRIGGERS)
 
-    def ask_autonomous(self, task: str, on_step: Callable[[int, int], None] | None = None) -> str:
+    def ask_autonomous(self, task: str, on_step: Callable[[int, int], None] | None = None,
+                       on_check: Callable[[str], None] | None = None) -> str:
         """Enchaîne les étapes jusqu'à « ÉTAT : TERMINÉ », à la limite ou à une
-        réponse sans marqueur deux fois de suite (le modèle a fini sans le dire)."""
+        réponse sans marqueur deux fois de suite (le modèle a fini sans le dire).
+
+        Dans un projet issu d'un kit, le cerveau juge lui-même chaque étape : verify_project
+        (tests + démarrage). Vert : point de reprise git. Rouge : l'erreur est renvoyée au modèle
+        au lieu de passer à la suite ; après trois échecs, le travail cassé est mis de côté
+        (git stash, rien n'est perdu) et la phase est notée bloquée."""
         limit = getattr(self.config, "max_autonomous_steps", 40)
         answer = ""
         missing_marker = 0
+        failures = 0
+        correction = ""
         for step in range(1, limit + 1):
             if on_step:
                 on_step(step, limit)
-            if step == 1:
+            if correction:
+                prompt = correction
+            elif step == 1:
                 prompt = task
             else:
                 phase = next_plan_phase(self.root)
@@ -247,6 +259,26 @@ class Agent:
                     f"{task[:300]}. Réalise uniquement cette phase, vérifie avec les tests, coche-la dans PLAN.md "
                     "avec edit_file. Termine par la ligne ÉTAT.")
             answer = self.ask(prompt)
+            verdict = self._verify()
+            if verdict is not None and on_check:
+                on_check(verdict)
+            if verdict is not None and not verdict.startswith("OK"):
+                failures += 1
+                missing_marker = 0
+                if failures >= 3 and set_aside(self.root, f"cerveau : étape {step} bloquée"):
+                    failures = 0
+                    correction = (
+                        "Trois corrections n'ont pas suffi. Le cerveau a mis le travail cassé de côté (git stash) : le "
+                        "projet est revenu au dernier état vérifié. Note cette phase sous « Bloqué » dans PLAN.md avec "
+                        "la cause probable, puis termine par la ligne ÉTAT.\nDernière vérification :\n" + verdict[-1500:])
+                else:
+                    correction = (
+                        "Vérification du cerveau en échec : l'étape n'est pas terminée, ne passe pas à la suite. "
+                        "Lis les fichiers en cause, corrige, puis termine par la ligne ÉTAT.\n" + verdict[-3000:])
+                continue
+            failures, correction = 0, ""
+            if verdict is not None:
+                checkpoint(self.root, f"cerveau : étape {step} vérifiée")
             if self.DONE_MARKER.search(answer):
                 return answer
             if self.CONTINUE_MARKER.search(answer):
@@ -256,6 +288,12 @@ class Agent:
             if missing_marker >= 2:
                 return answer
         return answer + "\n\n(limite d'étapes autonomes atteinte ; écrivez « continue en autonomie » pour reprendre)"
+
+    def _verify(self) -> str | None:
+        """Verdict de verify_project pour un projet issu d'un kit, sinon None."""
+        if kit_du_projet(self.root) is None or "verify_project" not in self.registry.names():
+            return None
+        return self.registry.call("verify_project", {}, self.root, confirm=self.confirm)
 
     def learn(self, question: str, answer: str) -> list[tuple[str, str, str]]:
         """Demande au modèle ce qui mérite d'être retenu et l'enregistre.

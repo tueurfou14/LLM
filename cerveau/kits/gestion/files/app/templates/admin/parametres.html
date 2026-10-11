@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block contenu %}
+<h1>Paramètres de la société</h1>
+<p class="discret">Ces informations apparaissent en tête et en pied des documents imprimés.</p>
+<form method="post" enctype="multipart/form-data" class="formulaire">
+  {% for cle, libelle in champs %}
+    <label>{{ libelle }}
+      {% if cle in ('societe_adresse', 'mentions_documents') %}<textarea name="{{ cle }}" rows="3">{{ parametres[cle] }}</textarea>
+      {% else %}<input name="{{ cle }}" value="{{ parametres[cle] }}">{% endif %}
+    </label>
+  {% endfor %}
+  <label>Logo (PNG, JPG ou WEBP, 2 Mo max) <input type="file" name="logo" accept=".png,.jpg,.jpeg,.webp"></label>
+  {% if logo %}<img src="/fichiers/logo" alt="Logo actuel" class="apercu-logo">{% endif %}
+  <div class="boutons"><button type="submit">Enregistrer</button></div>
+</form>
+{% endblock %}

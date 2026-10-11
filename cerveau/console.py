@@ -191,11 +191,13 @@ class ChatConsole:
                 except OSError:
                     self.pending_old = None
         self.tool_started_at = time.perf_counter()
-        if name in ("run_command", "start_server") and self.mode != "auto":
+        if name in ("run_command", "start_server", "verify_project") and self.mode != "auto":
             return  # la confirmation prend la main ; le chrono démarre après
         label = f"exécution : {str(args.get('command', ''))[:60]}" if name == "run_command" else f"{name}…"
         if name == "start_server":
             label = f"démarrage du serveur : {str(args.get('command', ''))[:60]}"
+        elif name == "verify_project":
+            label = "vérification : tests puis démarrage"
         self._start_status(f"[dim]{label}[/]")
 
     def _on_tool(self, name: str, args: dict, result: str) -> None:
@@ -204,7 +206,7 @@ class ChatConsole:
         first = (result.splitlines() or [""])[0]
         failed = first.lower().startswith(("erreur", "fichier introuvable", "outil inconnu", "arguments invalides",
                                            "chemin hors", "l'utilisateur a refusé", "commande interrompue",
-                                           "échec"))
+                                           "échec", "échec des tests", "tests ok, mais"))
         if name == "run_command" and first.startswith("code de sortie") and not first.endswith(" 0"):
             failed = True
         mark = ("    ✗ ", "red") if failed else ("    ✓ ", "green")
@@ -262,7 +264,8 @@ class ChatConsole:
         self._stop_live()
         self._stop_status()
         title = "Le modèle veut lancer un serveur" if name == "start_server" else "Le modèle veut exécuter"
-        self.out.print(Panel(Text(args.get("command", ""), style="bold"), title=title,
+        commande = args.get("command", "") or ("tests du projet puis démarrage de contrôle" if name == "verify_project" else "")
+        self.out.print(Panel(Text(commande, style="bold"), title=title,
                              border_style="yellow", title_align="left"))
         try:
             answer = self.out.input("  Autoriser ? [bold][o/N][/] ").strip().lower()
@@ -392,6 +395,14 @@ class ChatConsole:
         self.out.rule(f"[magenta]autonome · étape {step}/{limit}[/]", style="magenta")
         self._start_status("[dim]réflexion…[/]")
 
+    def _on_check(self, verdict: str) -> None:
+        self._stop_status()
+        self._stop_live()
+        if verdict.startswith("OK"):
+            self.out.print(Text.assemble(("  ✔ vérifié par le cerveau : ", "green"), (verdict[4:], "dim")))
+        else:
+            self.out.print(Text.assemble(("  ✗ vérification en échec : ", "red"), (verdict.splitlines()[0][:100], "dim")))
+
     def _ask(self, line: str, autonomous: bool | None = None) -> None:
         if autonomous is None:
             autonomous = Agent.wants_autonomy(line)
@@ -401,7 +412,7 @@ class ChatConsole:
         self._start_status("[dim]réflexion…[/]")
         try:
             if autonomous:
-                self.agent.ask_autonomous(line, on_step=self._on_step)
+                self.agent.ask_autonomous(line, on_step=self._on_step, on_check=self._on_check)
             else:
                 self.agent.ask(line)
         except KeyboardInterrupt:

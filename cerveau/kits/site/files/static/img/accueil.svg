@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Illustration">
+  <defs>
+    <linearGradient id="ciel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#efe6d8"/>
+      <stop offset="1" stop-color="#f7f2ea"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#ciel)"/>
+  <circle cx="590" cy="190" r="86" fill="#d9a066" opacity="0.85"/>
+  <path d="M0 420 C150 340 260 360 400 400 C540 440 660 380 800 330 L800 600 L0 600 Z" fill="#9bb3a6"/>
+  <path d="M0 470 C170 420 300 450 430 480 C570 512 690 470 800 440 L800 600 L0 600 Z" fill="#5f8576"/>
+  <g transform="translate(170 300)">
+    <rect x="0" y="80" width="230" height="150" fill="#f7f5f1"/>
+    <path d="M-20 92 L115 0 L250 92 Z" fill="#1f3d36"/>
+    <rect x="30" y="120" width="50" height="50" fill="#c9d6cf"/>
+    <rect x="150" y="120" width="50" height="110" fill="#c47a3a"/>
+  </g>
+  <path d="M0 540 C200 510 360 530 520 555 C640 574 730 560 800 545 L800 600 L0 600 Z" fill="#1f3d36"/>
+</svg>

@@ -1,0 +1,73 @@
+{% extends "_base.html" %}
+{% set titre = "Accueil" %}
+{% set description = site.description %}
+{% block contenu %}
+    <section class="hero">
+      <div class="conteneur hero__grille">
+        <div class="hero__texte">
+          <p class="surtitre" data-anim>{{ site.accueil.accroche }}</p>
+          <h1 data-anim>{{ site.slogan }}</h1>
+          <p class="hero__intro" data-anim>{{ site.accueil.intro }}</p>
+          <div class="boutons" data-anim>
+            <a class="bouton" href="contact.html">{{ site.accueil.bouton }}</a>
+            <a class="bouton bouton--contour" href="services.html">Nos services</a>
+          </div>
+        </div>
+        <div class="hero__visuel" data-anim>
+          <img src="{{ site.accueil.image }}" alt="{{ site.accueil.image_alt }}" width="800" height="600">
+        </div>
+      </div>
+    </section>
+
+{% if site.chiffres %}
+    <section class="chiffres" aria-label="Chiffres clés">
+      <ul class="conteneur chiffres__liste">
+{% for chiffre in site.chiffres %}
+        <li data-anim><strong>{{ chiffre.valeur }}</strong> <span>{{ chiffre.libelle }}</span></li>
+{% endfor %}
+      </ul>
+    </section>
+{% endif %}
+
+    <section class="section">
+      <div class="conteneur">
+        <div class="section__tete" data-anim>
+          <p class="surtitre">Ce que nous faisons</p>
+          <h2>Nos services</h2>
+        </div>
+        <div class="cartes">
+{% for service in site.services %}
+          <article class="carte" data-anim>
+            <span class="carte__numero">{{ "%02d" | format(loop.index) }}</span>
+            <h3>{{ service.titre }}</h3>
+            <p>{{ service.texte }}</p>
+          </article>
+{% endfor %}
+        </div>
+        <p class="section__suite"><a class="lien-fleche" href="services.html">Découvrir tous nos services</a></p>
+      </div>
+    </section>
+
+    <section class="section section--alt">
+      <div class="conteneur">
+        <div class="section__tete" data-anim>
+          <p class="surtitre">Nos chantiers</p>
+          <h2>Réalisations récentes</h2>
+        </div>
+        <div class="galerie">
+{% for realisation in site.realisations[:3] %}
+          <figure class="realisation" data-anim>
+            <img src="{{ realisation.image }}" alt="{{ realisation.titre }}" width="800" height="600" loading="lazy">
+            <figcaption>
+              <h3>{{ realisation.titre }}</h3>
+              <p>{{ realisation.legende }}</p>
+            </figcaption>
+          </figure>
+{% endfor %}
+        </div>
+        <p class="section__suite"><a class="lien-fleche" href="realisations.html">Voir toutes les réalisations</a></p>
+      </div>
+    </section>
+
+{% include "_bandeau-contact.html" %}
+{% endblock %}

@@ -1,0 +1,11 @@
+{
+  "titre": "Site vitrine",
+  "description": "Site vitrine multi-pages statique (accueil, services, réalisations, à propos, contact, mentions légales) pour une entreprise, un artisan ou une association, généré dans dist/ et déployable tel quel sur nginx ou Caddy.",
+  "mots_cles": ["site", "vitrine", "site web", "site internet", "landing", "page", "entreprise", "artisan", "statique", "html", "présentation", "plaquette"],
+  "port": 8000,
+  "test": "uv run pytest -q",
+  "start": "uv run python site.py serve --port {port}",
+  "sante": "/",
+  "renommer": {"_gitignore": ".gitignore"},
+  "suite": "Le contenu est dans contenu/site.json (nom, slogan, coordonnées, services, réalisations, à propos, couleurs, menu, mentions légales) : adapte d'abord ce fichier au client, sans toucher au reste.\nLes pages sont dans pages/*.html (Jinja, elles étendent pages/_base.html). Chaque page commence par {% set titre = \"...\" %} et {% set description = \"...\" %} et contient exactement un <h1>.\nAjouter une page : créer pages/ma-page.html sur le modèle de pages/services.html, puis ajouter {\"titre\": \"Ma page\", \"lien\": \"ma-page.html\"} dans \"menu\" de site.json.\nImages : déposer les fichiers dans static/img/ et les référencer par \"static/img/nom.jpg\" dans site.json. Style : static/css/style.css. Animations : static/js/main.js (jamais de pin).\nTester : uv run pytest -q (les messages disent quel fichier corriger). Construire : uv run python site.py build (résultat dans dist/). Lancer : uv run python site.py serve --port 8000 (reconstruit à chaque rechargement)."
+}

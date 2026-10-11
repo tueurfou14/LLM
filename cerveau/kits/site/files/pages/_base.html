@@ -1,0 +1,119 @@
+{#- Gabarit commun à toutes les pages. Chaque page fait :
+      {% extends "_base.html" %}
+      {% set titre = "Titre de la page" %}
+      {% set description = "Phrase pour Google (150 caractères environ)." %}
+      {% block contenu %} ... un seul <h1> ... {% endblock %}
+-#}
+{% set titre = titre | default(site.nom) %}
+{% set description = description | default(site.description) %}
+{% set titre_complet = (site.nom ~ " – " ~ site.slogan) if page == "index.html" else (titre ~ " | " ~ site.nom) %}
+{% set url_base = (site.url_site | default("", true)).rstrip("/") %}
+{% set police = site.police | default("Outfit", true) %}
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ titre_complet }}</title>
+  <meta name="description" content="{{ description }}">
+  <meta name="theme-color" content="{{ site.couleurs.primaire }}">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="fr_FR">
+  <meta property="og:site_name" content="{{ site.nom }}">
+  <meta property="og:title" content="{{ titre_complet }}">
+  <meta property="og:description" content="{{ description }}">
+{% if url_base %}
+  <link rel="canonical" href="{{ url_base }}/{{ '' if page == 'index.html' else page }}">
+  <meta property="og:url" content="{{ url_base }}/{{ '' if page == 'index.html' else page }}">
+  <meta property="og:image" content="{{ url_base }}/{{ site.accueil.image }}">
+{% endif %}
+  <link rel="icon" href="static/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family={{ police | replace(' ', '+') }}:wght@400;500;600;700&amp;display=swap">
+  <link rel="stylesheet" href="static/css/style.css">
+  <style>
+    :root {
+      --primaire: {{ site.couleurs.primaire }};
+      --accent: {{ site.couleurs.accent }};
+      --fond: {{ site.couleurs.fond }};
+      --texte: {{ site.couleurs.texte }};
+      --police: {{ police }};
+    }
+  </style>
+  <script>
+    /* « js-menu » active le menu mobile ; « js » masque les éléments à animer.
+       Sans JS, sans GSAP (CDN bloqué) ou en mouvement réduit, tout reste visible. */
+    (function (h) {
+      h.classList.add("js-menu");
+      if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      h.classList.add("js");
+      setTimeout(function () { if (!window.animationsPretes) h.classList.remove("js"); }, 2500);
+    })(document.documentElement);
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
+  <script src="static/js/main.js" defer></script>
+</head>
+<body>
+  <a class="evitement" href="#contenu">Aller au contenu</a>
+
+  <header class="entete">
+    <div class="conteneur entete__barre">
+      <a class="logo" href="index.html">
+        <span class="logo__marque" aria-hidden="true">{{ site.nom[:1] }}</span>
+        <span class="logo__nom">{{ site.nom }}</span>
+      </a>
+      <button class="nav-bouton" type="button" aria-expanded="false" aria-controls="navigation">
+        <span class="nav-bouton__barres" aria-hidden="true"></span>
+        <span class="visuellement-cache">Menu</span>
+      </button>
+      <nav id="navigation" class="nav" aria-label="Navigation principale">
+        <ul class="nav__liste">
+{% for item in site.menu %}
+          <li><a href="{{ item.lien }}"{% if item.lien == page %} class="actif" aria-current="page"{% endif %}>{{ item.titre }}</a></li>
+{% endfor %}
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="contenu">
+{% block contenu %}{% endblock %}
+  </main>
+
+  <footer class="pied">
+    <div class="conteneur pied__grille">
+      <div>
+        <p class="pied__nom">{{ site.nom }}</p>
+        <p>{{ site.slogan }}</p>
+      </div>
+      <div>
+        <p class="pied__titre">Coordonnées</p>
+        <ul class="pied__liste">
+          <li><a href="{{ site.coordonnees.adresse | carte }}" target="_blank" rel="noopener">{{ site.coordonnees.adresse }}</a></li>
+          <li><a href="tel:{{ site.coordonnees.telephone | tel }}">{{ site.coordonnees.telephone }}</a></li>
+          <li><a href="mailto:{{ site.coordonnees.email }}">{{ site.coordonnees.email }}</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="pied__titre">Horaires</p>
+        <ul class="pied__liste">
+{% for ligne in site.coordonnees.horaires %}
+          <li>{{ ligne }}</li>
+{% endfor %}
+        </ul>
+      </div>
+    </div>
+    <div class="conteneur pied__bas">
+      <p>© {{ annee }} {{ site.nom }}</p>
+      <ul class="pied__liens">
+{% for reseau in site.reseaux | default([]) if reseau.url %}
+        <li><a href="{{ reseau.url }}" target="_blank" rel="noopener">{{ reseau.nom }}</a></li>
+{% endfor %}
+        <li><a href="mentions-legales.html"{% if page == "mentions-legales.html" %} aria-current="page"{% endif %}>Mentions légales</a></li>
+      </ul>
+    </div>
+  </footer>
+</body>
+</html>

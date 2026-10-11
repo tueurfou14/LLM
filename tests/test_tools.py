@@ -242,17 +242,3 @@ def shell_run(project: Path, command: str, cwd: str) -> str:
     for tool in TOOLS:
         reg.add(tool)
     return reg.call("run_command", {"command": command, "cwd": cwd}, project)
-
-
-def test_scaffold_creates_a_complete_base_once(tmp_path: Path):
-    from cerveau.tools.scaffold import scaffold_web_app
-
-    out = scaffold_web_app(tmp_path, "Garage Dupont")
-    assert out.startswith("base créée")
-    for rel in ("pyproject.toml", "app/main.py", "app/routers/clients.py", "app/templates/clients/form.html",
-                "tests/test_clients.py"):
-        assert (tmp_path / rel).is_file(), rel
-    for py in tmp_path.rglob("*.py"):
-        compile(py.read_text(encoding="utf-8"), str(py), "exec")
-    assert 'APP_TITLE = "Garage Dupont"' in (tmp_path / "app/web.py").read_text(encoding="utf-8")
-    assert scaffold_web_app(tmp_path, "x").startswith("échec")

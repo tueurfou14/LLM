@@ -103,6 +103,29 @@ la fois. Trois mécanismes la gèrent :
 - **Mémoire de projet** : ce qui a été décidé et fait est mémorisé dans SQLite
   et rappelé selon la demande, même après `/clear` ou un redémarrage.
 
+## Kits : partir d'une base éprouvée
+
+Un petit modèle écrit mal une application entière, mais adapte très bien une base qui marche.
+`create_project` copie un kit testé dans le dossier vide du projet :
+
+- **gestion** : ERP, CRM, facturation, stock, GMAO, planning. FastAPI + SQLite + pages HTML,
+  connexion et rôles, utilisateurs, journal des actions, paramètres de la société, clients,
+  catalogue, devis transformables en factures (numérotation légale, verrouillage), interventions
+  avec planning, impression A4 / PDF, export CSV. Un module métier se déclare en quelques lignes
+  (`add_module`) et reçoit seul sa table, ses pages, ses droits et ses tests.
+- **site** : site vitrine multi-pages statique, contenu dans `contenu/site.json`, animations GSAP
+  sans section épinglée, construit dans `dist/` pour nginx ou Caddy.
+
+Vos propres kits vont dans `~/.cerveau/kits/<nom>/` (`kit.json` + `files/`).
+
+`verify_project` fait ce qu'on ferait avant de livrer : tous les tests, puis démarrage et réponse
+HTTP. En mode autonome, le cerveau le lance lui-même après chaque étape : vert, il fait un commit
+de reprise ; rouge, il renvoie l'erreur au modèle au lieu de passer à la suite ; après trois
+échecs, il met le travail cassé de côté (`git stash`, rien n'est perdu) et passe à la phase suivante.
+
+`start_server` lance l'application en arrière-plan et la laisse tourner ; `server_logs` montre
+son journal, `stop_server` l'arrête.
+
 ## Livraison pro, web et autonomie
 
 Trois mots dans une demande changent la façon de travailler :

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titre %}{{ titre_app }}{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+{% if utilisateur %}
+<div class="app">
+  <aside class="menu">
+    <a class="marque" href="/">{% if logo %}<img src="/fichiers/logo" alt="">{% endif %}<span>{{ titre_app }}</span></a>
+    <button class="menu-bouton" type="button" aria-label="Menu" data-menu>☰</button>
+    <nav>
+      <a href="/" class="{{ 'actif' if request.url.path == '/' }}">Tableau de bord</a>
+      {% for m in menu %}
+      <a href="/{{ m.nom }}/" class="{{ 'actif' if request.url.path.startswith('/' ~ m.nom ~ '/') }}">{{ m.libelle }}</a>
+      {% endfor %}
+      {% if utilisateur.est_admin %}
+      <div class="sep">Administration</div>
+      <a href="/utilisateurs" class="{{ 'actif' if request.url.path.startswith('/utilisateurs') }}">Utilisateurs</a>
+      <a href="/journal" class="{{ 'actif' if request.url.path.startswith('/journal') }}">Journal</a>
+      <a href="/parametres" class="{{ 'actif' if request.url.path.startswith('/parametres') }}">Paramètres</a>
+      {% endif %}
+    </nav>
+    <div class="moi"><a href="/mon-compte">{{ utilisateur.nom or utilisateur.identifiant }}</a> · <a href="/deconnexion">Déconnexion</a></div>
+  </aside>
+  <main class="contenu">
+    {% for genre, message in flash %}<div class="flash {{ genre }}">{{ message }}</div>{% endfor %}
+    {% block contenu %}{% endblock %}
+  </main>
+</div>
+{% else %}
+{% block public %}{% endblock %}
+{% endif %}
+<script src="/static/app.js"></script>
+</body>
+</html>

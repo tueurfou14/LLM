@@ -82,10 +82,10 @@ def _norm(path: str) -> str:
 
 
 def default_registry() -> Registry:
-    from . import files, scaffold, security, server, shell, web
+    from . import files, projets, security, server, shell, web
 
     reg = Registry()
-    for tool in (*files.TOOLS, *scaffold.TOOLS, *shell.TOOLS, *server.TOOLS, *web.TOOLS, *security.TOOLS):
+    for tool in (*files.TOOLS, *projets.TOOLS, *shell.TOOLS, *server.TOOLS, *web.TOOLS, *security.TOOLS):
         reg.add(tool)
     return reg
 

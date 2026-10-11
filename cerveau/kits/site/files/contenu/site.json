@@ -1,0 +1,151 @@
+{
+  "nom": "__TITRE__",
+  "slogan": "Un savoir-faire local, un travail soigné",
+  "description": "__TITRE__ accompagne particuliers et professionnels de la région : conseil, réalisation et suivi de vos projets, avec un interlocuteur unique et des délais tenus.",
+  "url_site": "",
+  "police": "Outfit",
+  "couleurs": {
+    "primaire": "#1f3d36",
+    "accent": "#c47a3a",
+    "fond": "#f7f5f1",
+    "texte": "#1c1c1a"
+  },
+  "menu": [
+    {
+      "titre": "Accueil",
+      "lien": "index.html"
+    },
+    {
+      "titre": "Services",
+      "lien": "services.html"
+    },
+    {
+      "titre": "Réalisations",
+      "lien": "realisations.html"
+    },
+    {
+      "titre": "À propos",
+      "lien": "a-propos.html"
+    },
+    {
+      "titre": "Contact",
+      "lien": "contact.html"
+    }
+  ],
+  "coordonnees": {
+    "adresse": "1 rue de l'Exemple, 75001 Paris",
+    "telephone": "01 23 45 67 89",
+    "email": "contact@exemple.fr",
+    "horaires": [
+      "Lundi – vendredi : 8 h – 12 h / 13 h 30 – 18 h",
+      "Samedi : sur rendez-vous"
+    ]
+  },
+  "accueil": {
+    "accroche": "Artisan de confiance",
+    "intro": "Nous étudions chaque projet avec vous, nous vous remettons un devis clair et nous réalisons les travaux avec des matériaux choisis pour durer.",
+    "image": "static/img/accueil.svg",
+    "image_alt": "Illustration de l'atelier",
+    "bouton": "Demander un devis"
+  },
+  "chiffres": [
+    {
+      "valeur": "15 ans",
+      "libelle": "d'expérience"
+    },
+    {
+      "valeur": "300+",
+      "libelle": "projets réalisés"
+    },
+    {
+      "valeur": "48 h",
+      "libelle": "pour un premier devis"
+    }
+  ],
+  "services": [
+    {
+      "titre": "Étude et conseil",
+      "texte": "Visite sur place, écoute de vos besoins et recommandations adaptées à votre budget."
+    },
+    {
+      "titre": "Réalisation",
+      "texte": "Fabrication et pose par notre équipe, dans le respect des règles de l'art et des délais annoncés."
+    },
+    {
+      "titre": "Rénovation",
+      "texte": "Remise à neuf de l'existant, mise aux normes et amélioration du confort au quotidien."
+    },
+    {
+      "titre": "Entretien et dépannage",
+      "texte": "Interventions rapides et contrats d'entretien pour garder vos installations en bon état."
+    }
+  ],
+  "realisations": [
+    {
+      "titre": "Rénovation d'une maison de ville",
+      "image": "static/img/realisation-1.svg",
+      "legende": "Remise à neuf complète en six semaines."
+    },
+    {
+      "titre": "Aménagement d'un local professionnel",
+      "image": "static/img/realisation-2.svg",
+      "legende": "Espace d'accueil et bureaux sur mesure."
+    },
+    {
+      "titre": "Extension contemporaine",
+      "image": "static/img/realisation-3.svg",
+      "legende": "Une pièce de vie lumineuse ouverte sur le jardin."
+    }
+  ],
+  "a_propos": {
+    "titre": "Une entreprise à taille humaine",
+    "paragraphes": [
+      "Fondée par des professionnels passionnés, __TITRE__ met son expérience au service des particuliers, des entreprises et des collectivités.",
+      "Nous privilégions les fournisseurs locaux, les matériaux durables et une relation directe avec nos clients, du premier rendez-vous à la fin du chantier."
+    ],
+    "valeurs": [
+      {
+        "titre": "Proximité",
+        "texte": "Un interlocuteur unique, joignable et disponible."
+      },
+      {
+        "titre": "Qualité",
+        "texte": "Des finitions soignées et des matériaux choisis pour durer."
+      },
+      {
+        "titre": "Transparence",
+        "texte": "Des devis détaillés, sans surprise."
+      }
+    ],
+    "image": "static/img/equipe.svg",
+    "image_alt": "Illustration de l'équipe"
+  },
+  "bandeau_contact": {
+    "titre": "Un projet en tête ?",
+    "texte": "Parlez-nous-en : nous vous répondons sous 48 h avec une première estimation, sans engagement.",
+    "bouton": "Nous contacter"
+  },
+  "reseaux": [
+    {
+      "nom": "Facebook",
+      "url": ""
+    },
+    {
+      "nom": "Instagram",
+      "url": ""
+    },
+    {
+      "nom": "LinkedIn",
+      "url": ""
+    }
+  ],
+  "mentions": {
+    "raison_sociale": "[À COMPLÉTER : raison sociale et forme juridique, ex. SARL __TITRE__]",
+    "capital": "[À COMPLÉTER : capital social]",
+    "siret": "[À COMPLÉTER : numéro SIRET]",
+    "rcs": "[À COMPLÉTER : ville du RCS ou numéro au répertoire des métiers]",
+    "tva": "[À COMPLÉTER : numéro de TVA intracommunautaire]",
+    "directeur_publication": "[À COMPLÉTER : nom du directeur de la publication]",
+    "hebergeur": "[À COMPLÉTER : nom, adresse et téléphone de l'hébergeur]"
+  }
+}

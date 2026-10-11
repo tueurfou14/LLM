@@ -1,0 +1,28 @@
+{% extends "_base.html" %}
+{% set titre = "Services" %}
+{% set description = "Les services de " ~ site.nom ~ " : étude, réalisation, rénovation et entretien. Devis gratuit sur demande." %}
+{% block contenu %}
+    <section class="entete-page">
+      <div class="conteneur" data-anim>
+        <p class="surtitre">Ce que nous faisons</p>
+        <h1>Nos services</h1>
+        <p class="chapo">De l'étude de votre projet jusqu'au suivi après travaux, nous vous accompagnons à chaque étape.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="conteneur">
+        <div class="cartes cartes--deux">
+{% for service in site.services %}
+          <article class="carte" data-anim>
+            <span class="carte__numero">{{ "%02d" | format(loop.index) }}</span>
+            <h2>{{ service.titre }}</h2>
+            <p>{{ service.texte }}</p>
+          </article>
+{% endfor %}
+        </div>
+      </div>
+    </section>
+
+{% include "_bandeau-contact.html" %}
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block contenu %}
+<h1>Tableau de bord</h1>
+<div class="cartes">
+  {% for module, nombre in cartes %}
+  <a class="carte-module" href="/{{ module.nom }}/"><span class="nombre">{{ nombre }}</span><span>{{ module.libelle }}</span></a>
+  {% endfor %}
+</div>
+{% if recents %}
+<h2>Dernières actions</h2>
+<table>
+  <thead><tr><th>Date</th><th>Utilisateur</th><th>Action</th><th>Détail</th></tr></thead>
+  <tbody>
+  {% for j in recents %}<tr><td>{{ j.date|date_fr }}</td><td>{{ j.utilisateur }}</td><td>{{ j.action }}{% if j.module %} · {{ j.module }}{% endif %}</td><td>{{ j.detail }}</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

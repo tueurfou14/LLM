@@ -1,0 +1,30 @@
+{% extends "_base.html" %}
+{% set titre = "Réalisations" %}
+{% set description = "Quelques réalisations de " ~ site.nom ~ " : projets menés pour des particuliers et des professionnels." %}
+{% block contenu %}
+    <section class="entete-page">
+      <div class="conteneur" data-anim>
+        <p class="surtitre">Nos chantiers</p>
+        <h1>Nos réalisations</h1>
+        <p class="chapo">Une sélection de projets récents, menés avec le même soin du premier rendez-vous à la livraison.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="conteneur">
+        <div class="galerie">
+{% for realisation in site.realisations %}
+          <figure class="realisation" data-anim>
+            <img src="{{ realisation.image }}" alt="{{ realisation.titre }}" width="800" height="600" loading="lazy">
+            <figcaption>
+              <h2>{{ realisation.titre }}</h2>
+              <p>{{ realisation.legende }}</p>
+            </figcaption>
+          </figure>
+{% endfor %}
+        </div>
+      </div>
+    </section>
+
+{% include "_bandeau-contact.html" %}
+{% endblock %}

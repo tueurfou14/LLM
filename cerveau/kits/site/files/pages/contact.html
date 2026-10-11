@@ -1,0 +1,40 @@
+{% extends "_base.html" %}
+{% set titre = "Contact" %}
+{% set description = "Contactez " ~ site.nom ~ " : téléphone, e-mail, adresse et horaires d'ouverture." %}
+{% set c = site.coordonnees %}
+{% block contenu %}
+    <section class="entete-page">
+      <div class="conteneur" data-anim>
+        <p class="surtitre">Parlons de votre projet</p>
+        <h1>Nous contacter</h1>
+        <p class="chapo">Appelez-nous ou écrivez-nous : nous vous répondons rapidement.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="conteneur contact">
+        <div class="carte contact__bloc" data-anim>
+          <h2>Téléphone</h2>
+          <p><a class="contact__valeur" href="tel:{{ c.telephone | tel }}">{{ c.telephone }}</a></p>
+        </div>
+        <div class="carte contact__bloc" data-anim>
+          <h2>E-mail</h2>
+          <p><a class="contact__valeur" href="mailto:{{ c.email }}">{{ c.email }}</a></p>
+          <p><a class="bouton" href="mailto:{{ c.email }}?subject={{ ('Demande de renseignements – ' ~ site.nom) | urlencode }}">Écrire un message</a></p>
+        </div>
+        <div class="carte contact__bloc" data-anim>
+          <h2>Adresse</h2>
+          <address>{{ c.adresse }}</address>
+          <p><a class="lien-fleche" href="{{ c.adresse | carte }}" target="_blank" rel="noopener">Voir sur la carte</a></p>
+        </div>
+        <div class="carte contact__bloc" data-anim>
+          <h2>Horaires</h2>
+          <ul class="liste-simple">
+{% for ligne in c.horaires %}
+            <li>{{ ligne }}</li>
+{% endfor %}
+          </ul>
+        </div>
+      </div>
+    </section>
+{% endblock %}
