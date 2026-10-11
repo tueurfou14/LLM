@@ -19,7 +19,7 @@ cerveau = "cerveau.__main__:main"
 include = ["cerveau*"]
 
 [tool.setuptools.package-data]
-cerveau = ["skills/*.md", "kits/*/kit.json", "kits/**/*", "banc_scenarios/*.json"]
+cerveau = ["skills/*.md", "kits/*/kit.json", "kits/**/*", "banc_scenarios/*.json", "deploiement_gabarits/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
