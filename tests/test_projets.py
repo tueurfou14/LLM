@@ -118,3 +118,23 @@ def test_projet_range_dans_un_autre_depot_n_est_pas_touche(tmp_path):
     (projet / "a.txt").write_text("x")
     assert not projets.checkpoint(projet, "x")
     assert not (projet / ".git").exists()
+
+
+@pytest.mark.parametrize("pack", sorted(projets.packs_du_kit("gestion")))
+def test_packs_metier(tmp_path, monkeypatch, pack):
+    monkeypatch.setattr(projets, "_charger_application", lambda root: "")
+    out = projets.create_project(tmp_path, "gestion", "Essai", pack=pack)
+    assert f"pack « {pack} » appliqué" in out, out
+    for spec in projets.packs_du_kit("gestion")[pack]["modules"]:
+        compile((tmp_path / f"app/modules/{spec['nom']}.py").read_text(encoding="utf-8"), spec["nom"], "exec")
+    for retire in projets.packs_du_kit("gestion")[pack].get("retirer", []):
+        assert not (tmp_path / f"app/modules/{retire}.py").exists()
+
+
+def test_pack_optique_ajoute_le_role(tmp_path, monkeypatch):
+    monkeypatch.setattr(projets, "_charger_application", lambda root: "")
+    projets.create_project(tmp_path, "gestion", "Optic", pack="optique")
+    config = (tmp_path / "app/config.py").read_text(encoding="utf-8")
+    assert '"optique": "Opticien"' in config
+    compile(config, "config.py", "exec")
+    assert "journal_consultations=True" in (tmp_path / "app/modules/ordonnances.py").read_text(encoding="utf-8")

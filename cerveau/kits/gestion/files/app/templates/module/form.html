@@ -6,7 +6,9 @@
   <h1><a class="discret" href="/{{ module.nom }}/">{{ module.libelle }}</a> / {{ titre_objet }}</h1>
   {% if objet %}
   <div class="boutons">
-    {% if module.imprimable %}<a class="bouton secondaire" href="/{{ module.nom }}/{{ objet.id }}/imprimer" target="_blank">Imprimer / PDF</a>{% endif %}
+    {% if module.imprimable %}<a class="bouton secondaire" href="/{{ module.nom }}/{{ objet.id }}/imprimer" target="_blank">Imprimer</a>
+    <a class="bouton secondaire" href="/{{ module.nom }}/{{ objet.id }}/pdf">PDF</a>
+    {% if peut_ecrire %}<a class="bouton secondaire" href="/{{ module.nom }}/{{ objet.id }}/envoyer">Envoyer par mail</a>{% endif %}{% endif %}
     {% if peut_ecrire %}{% for a in actions %}
     <form method="post" action="/{{ module.nom }}/{{ objet.id }}/action/{{ a.nom }}"><button type="submit" class="secondaire">{{ a.libelle }}</button></form>
     {% endfor %}{% endif %}

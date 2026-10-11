@@ -1,0 +1,37 @@
+{
+ "titre": "Magasin d'optique",
+ "mots_cles": ["optique", "opticien", "lunettes", "lentilles", "montures", "ordonnance"],
+ "retirer": ["interventions"],
+ "note": "Les ordonnances sont des données de santé (RGPD, article 9) : accès limité au rôle optique, et le module journalise chaque consultation via le journal des actions.",
+ "roles": {"optique": "Opticien"},
+ "modules": [
+  {"nom": "montures", "libelle": "Montures", "objet": "monture", "feminin": true, "titre": "reference", "ordre": 18, "champs": [
+   {"nom": "reference", "libelle": "Référence", "type": "texte", "requis": true},
+   {"nom": "marque", "libelle": "Marque", "type": "texte"},
+   {"nom": "modele", "libelle": "Modèle", "type": "texte"},
+   {"nom": "coloris", "libelle": "Coloris", "type": "texte", "liste": false},
+   {"nom": "stock", "libelle": "Stock", "type": "entier"},
+   {"nom": "prix_vente", "libelle": "Prix de vente TTC", "type": "monnaie"}]},
+  {"nom": "ordonnances", "libelle": "Ordonnances", "objet": "ordonnance", "feminin": true, "ordre": 22, "lecture": ["optique"], "ecriture": ["optique"], "champs": [
+   {"nom": "client", "libelle": "Client", "type": "ref", "ref": "clients", "requis": true},
+   {"nom": "date", "libelle": "Date", "type": "date", "requis": true, "defaut": "aujourdhui"},
+   {"nom": "prescripteur", "libelle": "Prescripteur", "type": "texte"},
+   {"nom": "od_sphere", "libelle": "OD sphère", "type": "decimal", "liste": false},
+   {"nom": "od_cylindre", "libelle": "OD cylindre", "type": "decimal", "liste": false},
+   {"nom": "od_axe", "libelle": "OD axe", "type": "entier", "liste": false},
+   {"nom": "og_sphere", "libelle": "OG sphère", "type": "decimal", "liste": false},
+   {"nom": "og_cylindre", "libelle": "OG cylindre", "type": "decimal", "liste": false},
+   {"nom": "og_axe", "libelle": "OG axe", "type": "entier", "liste": false},
+   {"nom": "addition", "libelle": "Addition", "type": "decimal", "liste": false},
+   {"nom": "validite", "libelle": "Valable jusqu'au", "type": "date"}]},
+  {"nom": "dossiers", "libelle": "Dossiers clients", "objet": "dossier", "ordre": 26, "planning": "livraison_prevue", "champs": [
+   {"nom": "numero", "libelle": "N°", "type": "numero", "format": "DO-{annee}-{n:04d}"},
+   {"nom": "client", "libelle": "Client", "type": "ref", "ref": "clients", "requis": true},
+   {"nom": "monture", "libelle": "Monture", "type": "ref", "ref": "montures"},
+   {"nom": "verres", "libelle": "Verres", "type": "texte"},
+   {"nom": "mutuelle", "libelle": "Mutuelle", "type": "texte"},
+   {"nom": "prise_en_charge", "libelle": "Prise en charge", "type": "choix", "choix": ["À demander", "Demandée", "Accordée", "Refusée"]},
+   {"nom": "livraison_prevue", "libelle": "Livraison prévue", "type": "date"},
+   {"nom": "statut", "libelle": "Statut", "type": "choix", "choix": ["Commande à passer", "Commandé", "Reçu", "Livré au client"], "defaut": "Commande à passer"}]}
+ ]
+}

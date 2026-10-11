@@ -102,6 +102,7 @@ class Agent:
                                        timeout=getattr(config, "timeout_seconds", 600))
         self.store = store or MemoryStore(config.db_path, embedder=self._embed)
         self.registry = registry or default_registry()
+        self.registry.commandes_autorisees = set(getattr(config, "commandes_autorisees", None) or [])
         self.on_token = on_token
         self.on_tool = on_tool
         self.confirm = confirm

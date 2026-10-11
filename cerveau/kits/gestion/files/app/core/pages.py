@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app import config
 from app.core.database import DATA, get_db
 from app.core.framework import modules_visibles
-from app.core.modeles import (PARAMETRES_SOCIETE, Journal, Utilisateur, ecrire_parametre, journaliser,
+from app.core.modeles import (PARAMETRES_SOCIETE, SECRETS, Journal, Utilisateur, ecrire_parametre, journaliser,
                               lire_parametres)
 from app.core.securite import frein, hacher, verifier
 from app.core.web import exiger_admin, flash, rendre, utilisateur_connecte
@@ -161,7 +161,7 @@ def journal(request: Request, module: str = "", page: int = 1, db: Session = Dep
 
 @router.get("/parametres")
 def parametres(request: Request, db: Session = Depends(get_db), admin: Utilisateur = Depends(exiger_admin)):
-    return rendre(request, db, "admin/parametres.html", {"champs": PARAMETRES_SOCIETE}, admin)
+    return rendre(request, db, "admin/parametres.html", {"champs": PARAMETRES_SOCIETE, "secrets": SECRETS}, admin)
 
 
 @router.post("/parametres")
@@ -169,7 +169,10 @@ async def parametres_envoi(request: Request, logo: UploadFile | None = File(None
                            admin: Utilisateur = Depends(exiger_admin)):
     formulaire = await request.form()
     for cle, _ in PARAMETRES_SOCIETE:
-        ecrire_parametre(db, cle, str(formulaire.get(cle, "")).strip())
+        valeur = str(formulaire.get(cle, "")).strip()
+        if cle in SECRETS and not valeur:
+            continue
+        ecrire_parametre(db, cle, valeur)
     if logo is not None and logo.filename:
         extension = "." + logo.filename.rsplit(".", 1)[-1].lower() if "." in logo.filename else ""
         contenu = await logo.read()

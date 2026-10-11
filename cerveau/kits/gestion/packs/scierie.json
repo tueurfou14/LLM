@@ -1,0 +1,44 @@
+{
+ "titre": "Scierie, négoce de bois",
+ "mots_cles": ["scierie", "bois", "sciage", "grumes", "négoce", "charpente", "palettes", "forêt"],
+ "retirer": ["interventions"],
+ "modules": [
+  {"nom": "produits", "libelle": "Produits bois", "objet": "produit", "titre": "designation", "ordre": 18, "champs": [
+   {"nom": "designation", "libelle": "Désignation", "type": "texte", "requis": true},
+   {"nom": "essence", "libelle": "Essence", "type": "choix", "choix": ["Sapin", "Épicéa", "Douglas", "Mélèze", "Pin", "Chêne", "Hêtre", "Autre"]},
+   {"nom": "section", "libelle": "Section (mm)", "type": "texte", "aide": "ex. 63x175"},
+   {"nom": "longueur", "libelle": "Longueur (m)", "type": "decimal"},
+   {"nom": "qualite", "libelle": "Qualité", "type": "choix", "choix": ["Charpente", "Menuiserie", "Coffrage", "Palette", "Choix 1", "Choix 2"]},
+   {"nom": "prix_m3", "libelle": "Prix au m³ HT", "type": "monnaie"}]},
+  {"nom": "lots", "libelle": "Stock (lots)", "objet": "lot", "titre": "reference", "ordre": 20, "champs": [
+   {"nom": "reference", "libelle": "Référence du lot", "type": "texte", "requis": true},
+   {"nom": "produit", "libelle": "Produit", "type": "ref", "ref": "produits", "requis": true},
+   {"nom": "volume_m3", "libelle": "Volume (m³)", "type": "decimal"},
+   {"nom": "nombre_pieces", "libelle": "Nombre de pièces", "type": "entier"},
+   {"nom": "emplacement", "libelle": "Emplacement", "type": "texte"},
+   {"nom": "sechage", "libelle": "Séchage", "type": "choix", "choix": ["Vert", "Ressuyé", "Séché KD 18%", "Séché KD 12%"]},
+   {"nom": "date_entree", "libelle": "Entrée en stock", "type": "date", "defaut": "aujourdhui"}]},
+  {"nom": "bons_livraison", "libelle": "Bons de livraison", "objet": "bon de livraison", "ordre": 35, "document": true, "planning": "date_livraison", "champs": [
+   {"nom": "numero", "libelle": "N°", "type": "numero", "format": "BL-{annee}-{n:04d}"},
+   {"nom": "date", "libelle": "Date", "type": "date", "requis": true, "defaut": "aujourdhui"},
+   {"nom": "client", "libelle": "Client", "type": "ref", "ref": "clients", "requis": true},
+   {"nom": "date_livraison", "libelle": "Livraison prévue", "type": "date"},
+   {"nom": "adresse_livraison", "libelle": "Adresse de livraison", "type": "texte_long"},
+   {"nom": "transporteur", "libelle": "Transporteur", "type": "texte"},
+   {"nom": "statut", "libelle": "Statut", "type": "choix", "choix": ["À préparer", "Prêt", "Livré", "Facturé"], "defaut": "À préparer"}]},
+  {"nom": "equipements", "libelle": "Équipements", "objet": "équipement", "titre": "nom", "ordre": 70, "champs": [
+   {"nom": "nom", "libelle": "Nom", "type": "texte", "requis": true},
+   {"nom": "atelier", "libelle": "Atelier", "type": "choix", "choix": ["Scie de tête", "Déligneuse", "Rabotage", "Séchoir", "Affûtage", "Manutention", "Autre"]},
+   {"nom": "marque", "libelle": "Marque", "type": "texte"},
+   {"nom": "mise_en_service", "libelle": "Mise en service", "type": "date", "liste": false}]},
+  {"nom": "ordres_travail", "libelle": "Maintenance", "objet": "ordre de travail", "ordre": 72, "planning": "date", "titre": "intitule", "champs": [
+   {"nom": "intitule", "libelle": "Intitulé", "type": "texte", "requis": true},
+   {"nom": "equipement", "libelle": "Équipement", "type": "ref", "ref": "equipements", "requis": true},
+   {"nom": "date", "libelle": "Date prévue", "type": "date", "requis": true, "defaut": "aujourdhui"},
+   {"nom": "type_maintenance", "libelle": "Type", "type": "choix", "choix": ["Préventive", "Curative", "Amélioration"]},
+   {"nom": "technicien", "libelle": "Technicien", "type": "texte"},
+   {"nom": "duree_heures", "libelle": "Durée (h)", "type": "decimal"},
+   {"nom": "statut", "libelle": "Statut", "type": "choix", "choix": ["Planifié", "En cours", "Terminé"], "defaut": "Planifié"},
+   {"nom": "compte_rendu", "libelle": "Compte rendu", "type": "texte_long"}]}
+ ]
+}

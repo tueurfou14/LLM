@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block titre %}Impayés · {{ titre_app }}{% endblock %}
+{% block contenu %}
+<div class="barre"><h1><a class="discret" href="/factures/">Factures</a> / Impayés</h1></div>
+<div class="tableau">
+<table>
+  <thead><tr><th>N°</th><th>Client</th><th>Échéance</th><th>Retard</th><th class="nombre">Total TTC</th><th>Relances</th><th></th></tr></thead>
+  <tbody>
+  {% for f in factures %}
+    <tr>
+      <td><a href="/factures/{{ f.id }}">{{ f.numero }}</a></td>
+      <td>{{ module.afficher(f, module.champ('client')) }}</td>
+      <td>{{ f.echeance|date_fr }}</td>
+      <td>{{ (aujourdhui - f.echeance).days }} j</td>
+      <td class="nombre">{{ module.afficher(f, module.champ('total_ttc')) }}</td>
+      <td>{{ f.relances or 0 }}{% if f.derniere_relance %} (le {{ f.derniere_relance|date_fr }}){% endif %}</td>
+      <td><form method="post" action="/factures/{{ f.id }}/relancer" data-confirmer="Envoyer une relance pour {{ f.numero }} ?"><button type="submit" class="secondaire">Relancer</button></form></td>
+    </tr>
+  {% else %}<tr><td colspan="7" class="vide">Aucune facture impayée en retard.</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

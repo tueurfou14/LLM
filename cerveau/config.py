@@ -32,6 +32,7 @@ class Config:
     permission_mode: str = "confirm"   # "confirm" : les commandes attendent un o ; "auto" : rien n'est demandé
     web_enabled: bool = True           # outils web_search et web_fetch
     max_autonomous_steps: int = 40     # relances maximales en mode autonome
+    commandes_autorisees: list = None  # programmes ajoutés à la liste blanche du mode auto, ex. ["docker"]
     tier: str = "small"
     hardware: dict = field(default_factory=dict)
 

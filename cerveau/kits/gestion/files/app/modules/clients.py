@@ -12,7 +12,8 @@ module = Module(
         Champ("nom", "Nom", requis=True),
         Champ("email", "Email", type="email"),
         Champ("telephone", "Téléphone", type="telephone"),
-        Champ("adresse", "Adresse", type="texte_long", liste=False),
+        Champ("adresse", "Adresse", type="texte_long", liste=False, aide="rue, puis code postal et ville"),
+        Champ("siren", "SIREN", liste=False, aide="obligatoire sur les factures aux entreprises"),
         Champ("notes", "Notes", type="texte_long", liste=False),
     ],
 )

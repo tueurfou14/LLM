@@ -60,6 +60,7 @@ Options de `Module` : `feminin=True` (accords « Nouvelle facture »), `ordre` (
 `suppression=False`, `imprimable=True`, `planning="<champ date>"`, `lignes=Lignes(...)` ou
 `lignes_standard()` avec `*champs_totaux()` pour un document chiffré, `actions=[Action(...)]`,
 `avant_enregistrement=fonction(objet, db)` qui lève `ValueError("message")` pour refuser,
-`verrouille=lambda obj: ...` et `modifiable_si_verrouille=[champs]`.
+`verrouille=lambda obj: ...` et `modifiable_si_verrouille=[champs]`, `journal_consultations=True`
+(données sensibles : chaque consultation est inscrite au journal).
 
 Un champ ajouté à un module existant est ajouté seul à la base au démarrage. Un champ retiré reste en base.

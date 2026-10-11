@@ -87,7 +87,14 @@ PARAMETRES_SOCIETE = [
     ("societe_tva", "N° de TVA intracommunautaire"),
     ("societe_iban", "IBAN"),
     ("mentions_documents", "Mentions en bas des documents (pénalités de retard, conditions…)"),
+    ("smtp_hote", "Serveur d'envoi des mails (SMTP)"),
+    ("smtp_port", "Port SMTP (587 ou 465)"),
+    ("smtp_utilisateur", "Utilisateur SMTP"),
+    ("smtp_mot_de_passe", "Mot de passe SMTP"),
+    ("smtp_expediteur", "Adresse d'expédition"),
+    ("texte_relance", "Texte des relances d'impayés"),
 ]
+SECRETS = {"smtp_mot_de_passe"}   # jamais réaffichés ; laissés vides, ils ne changent pas
 
 
 def lire_parametres(db: Session) -> dict[str, str]:

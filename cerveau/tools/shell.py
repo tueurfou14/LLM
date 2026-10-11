@@ -136,6 +136,101 @@ WEB_SERVERS = [
     (r"\bnpm\s+(run\s+)?(dev|start|serve)\b", 3000), (r"\byarn\s+(dev|start|serve)\b", 3000),
     (r"\bpnpm\s+(dev|start|serve)\b", 3000),
 ]
+# --- mode auto : liste blanche -----------------------------------------------------
+# Sans humain pour valider, seules les commandes de développement courantes passent, et
+# jamais sur un chemin hors du projet. Ce n'est pas un bac à sable (un script Python peut
+# tout faire) : c'est une barrière contre les accidents et les consignes piégées d'une page web.
+PROGRAMMES_AUTORISES = {
+    "uv", "uvx", "python", "python3", "py", "pytest", "ruff", "black", "mypy", "alembic",
+    "npm", "npx", "node", "pnpm", "yarn", "tsc", "vite",
+    "git", "echo", "dir", "ls", "cat", "type", "where", "which", "findstr", "grep", "more", "head", "tail",
+    "mkdir", "md", "cd", "copy", "cp", "move", "mv", "del", "rm", "rmdir", "rd", "touch",
+    "set", "ver", "whoami", "hostname", "sqlite3", "curl",
+}
+GIT_AUTORISES = {"status", "diff", "log", "show", "add", "commit", "init", "branch", "switch", "checkout",
+                 "restore", "stash", "rev-parse", "ls-files", "mv", "rm", "tag", "blame"}
+CMD_WINDOWS = {"del", "rmdir", "rd", "copy", "move", "dir", "findstr", "md", "type", "more"}
+
+
+def _decouper(commande: str) -> list[list[str]]:
+    """Commandes enchaînées (&&, ||, ;, |) et leurs mots, en respectant les guillemets."""
+    commandes: list[list[str]] = [[]]
+    mot, guillemet, i = "", "", 0
+    while i < len(commande):
+        c = commande[i]
+        if guillemet:
+            mot += c
+            if c == guillemet:
+                guillemet = ""
+        elif c in "\"'":
+            guillemet = c
+            mot += c
+        elif c.isspace() and c != "\n":
+            if mot:
+                commandes[-1].append(mot)
+            mot = ""
+        elif c in ";|&\n":
+            if mot:
+                commandes[-1].append(mot)
+            mot = ""
+            if commande[i:i + 2] in ("&&", "||"):
+                i += 1
+            commandes.append([])
+        else:
+            mot += c
+        i += 1
+    if mot:
+        commandes[-1].append(mot)
+    return [c for c in commandes if c]
+
+
+def _chemin_hors_projet(root: Path, argument: str) -> bool:
+    texte = argument.strip("\"'")
+    if not texte or texte.startswith("-") or "://" in texte:
+        return False
+    if texte.startswith(("~", "$home", "$env:", "%userprofile%", "%homepath%", "%appdata%", "$HOME")):
+        return True
+    if re.match(r"^[A-Za-z]:[\\/]", texte) and os.name != "nt":
+        return True                                       # chemin Windows absolu vu d'ailleurs
+    if not (texte.startswith(("/", "\\")) or re.match(r"^[A-Za-z]:[\\/]", texte) or ".." in texte.replace("\\", "/").split("/")):
+        return False
+    try:
+        cible = (root / texte).resolve() if not Path(texte).is_absolute() else Path(texte).resolve()
+    except (OSError, ValueError):
+        return True
+    racine = root.resolve()
+    return cible != racine and racine not in cible.parents
+
+
+def refus_mode_auto(root: Path, command: str, extra: set[str] | None = None) -> str | None:
+    """Raison du refus d'une commande en mode auto, ou None si elle peut passer."""
+    if re.search(r"\$\(|`|<\(", command):
+        return "sous-commande $(...) ou `...` : écris la commande en clair"
+    autorises = PROGRAMMES_AUTORISES | (extra or set())
+    for mots in _decouper(command.strip()):
+        while mots and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*=\S*", mots[0]):
+            mots.pop(0)                                   # VARIABLE=valeur devant la commande
+        if not mots:
+            continue
+        programme = Path(mots[0].strip("\"'")).name.lower().removesuffix(".exe").removesuffix(".cmd")
+        if programme not in autorises:
+            return (f"« {programme} » n'est pas dans la liste des commandes du mode auto "
+                    f"({', '.join(sorted(PROGRAMMES_AUTORISES))})")
+        if programme == "git":
+            sous = next((m for m in mots[1:] if not m.startswith("-")), "")
+            if sous not in GIT_AUTORISES:
+                return f"git {sous} n'est pas autorisé en mode auto"
+        for argument in mots[1:]:
+            argument = re.sub(r"^\d?>>?", "", argument)     # redirections > fichier
+            if programme in CMD_WINDOWS and re.fullmatch(r"/[A-Za-z?]{1,3}(:\S*)?", argument):
+                continue                                  # option Windows : /q, /s, /a:h
+            if argument.startswith(("'", '"')) and programme in ("python", "python3", "py", "node", "echo"):
+                continue                                  # code ou texte entre guillemets
+            if _chemin_hors_projet(root, argument):
+                return f"chemin hors du projet : {argument}"
+    return None
+
+
 SERVER_PATTERNS = [p for p, _ in WEB_SERVERS] + [r"\bnode\s+\S*server", r"\btail\s+-f\b", r"--reload\b", r"\bwatch\b"]
 SERVER_TIMEOUT = 15
 

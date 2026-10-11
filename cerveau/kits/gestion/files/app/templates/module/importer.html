@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block titre %}Importer · {{ module.libelle }} · {{ titre_app }}{% endblock %}
+{% block contenu %}
+<h1><a class="discret" href="/{{ module.nom }}/">{{ module.libelle }}</a> / Importer</h1>
+{% if erreurs %}
+<div class="flash erreur">
+  <strong>Rien n'a été importé.</strong> Corrigez le fichier puis recommencez :
+  <ul>{% for e in erreurs %}<li>{{ e }}</li>{% endfor %}{% if plus %}<li>… et {{ plus }} autres erreurs</li>{% endif %}</ul>
+</div>
+{% endif %}
+<form method="post" enctype="multipart/form-data" class="formulaire">
+  <p>Fichier CSV (séparateur « ; » ou « , ») ou Excel (.xlsx). La première ligne contient les noms des colonnes :</p>
+  <p>{% for c in module.champs if c.type != 'calcul' %}<span class="etiquette">{{ c.libelle }}{% if c.requis %} *{% endif %}</span> {% endfor %}</p>
+  <small>Dates au format 31/12/2026 ou 2026-12-31. Un lien (ex. client) se donne par son nom.
+    Si une seule ligne est fausse, rien n'est importé. <a href="/{{ module.nom }}/modele.csv">Télécharger un modèle de fichier</a></small>
+  <label>Fichier <input type="file" name="fichier" accept=".csv,.txt,.xlsx" required></label>
+  <div class="boutons"><button type="submit">Importer</button><a href="/{{ module.nom }}/">Annuler</a></div>
+</form>
+{% endblock %}

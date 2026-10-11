@@ -64,7 +64,52 @@ def _remplacer(texte: str, titre: str, slug: str, json_: bool) -> str:
     return texte.replace("__TITRE__", sur).replace("__SLUG__", slug)
 
 
-def create_project(root: Path, kit: str, title: str) -> str:
+def packs_du_kit(kit: str) -> dict[str, dict]:
+    meta = kits_disponibles().get(kit)
+    packs: dict[str, dict] = {}
+    if meta is None:
+        return packs
+    for dossier in (Path(meta["chemin"]) / "packs", HOME / "kits" / kit / "packs"):
+        for fichier in sorted(dossier.glob("*.json")) if dossier.is_dir() else []:
+            try:
+                packs[fichier.stem] = json.loads(fichier.read_text(encoding="utf-8"))
+            except ValueError:
+                continue
+    return packs
+
+
+def appliquer_pack(root: Path, kit: str, nom: str) -> str:
+    """Pack métier : retire les modules de base inutiles, ajoute rôles et modules du métier."""
+    packs = packs_du_kit(kit)
+    if nom not in packs:
+        return f"échec : pack inconnu « {nom} ». Packs du kit {kit} : {', '.join(packs) or 'aucun'}"
+    pack = packs[nom]
+    for module in pack.get("retirer", []):
+        (root / "app" / "modules" / f"{module}.py").unlink(missing_ok=True)
+    if pack.get("roles"):
+        config = root / "app" / "config.py"
+        texte = config.read_text(encoding="utf-8")
+        ajout = "".join(f'    "{cle}": "{libelle}",\n' for cle, libelle in pack["roles"].items() if f'"{cle}"' not in texte)
+        config.write_text(re.sub(r"(ROLES = \{\n(?:.*\n)*?)\}", lambda m: m.group(1) + ajout + "}", texte, count=1),
+                          encoding="utf-8")
+    ajoutes = []
+    for spec in pack.get("modules", []):
+        resultat = add_module(root, verifier=False, **spec)
+        if resultat.startswith("échec"):
+            return f"échec du pack {nom} sur le module {spec.get('nom')} : {resultat}"
+        ajoutes.append(spec["nom"])
+    controle = _charger_application(root)
+    if controle:
+        return f"échec : l'application ne se charge plus après le pack {nom}.\n{controle}"
+    texte = f"pack « {nom} » appliqué : modules {', '.join(ajoutes)}"
+    if pack.get("retirer"):
+        texte += f" ; retirés : {', '.join(pack['retirer'])}"
+    if pack.get("note"):
+        texte += f"\nÀ savoir : {pack['note']}"
+    return texte
+
+
+def create_project(root: Path, kit: str, title: str, pack: str = "") -> str:
     """Copie un kit dans le projet, avec le nom affiché du client ou de l'application."""
     kits = kits_disponibles()
     if kit not in kits:
@@ -98,7 +143,12 @@ def create_project(root: Path, kit: str, title: str) -> str:
     infos["nom"] = kit
     (root / KIT_DU_PROJET).write_text(json.dumps(infos, ensure_ascii=False, indent=1), encoding="utf-8")
     start = meta["start"].format(port=meta.get("port", 8000))
-    return (f"projet créé depuis le kit « {kit} » ({len(destinations)} fichiers), tests compris.\n"
+    texte_pack = ""
+    if pack:
+        texte_pack = appliquer_pack(root, kit, pack) + "\n"
+        if texte_pack.startswith("échec"):
+            return texte_pack
+    return (f"projet créé depuis le kit « {kit} » ({len(destinations)} fichiers), tests compris.\n{texte_pack}"
             f"{meta.get('suite', '')}\n"
             f"Étapes suivantes : verify_project (tests + démarrage), puis start_server « {start} » "
             f"(port {meta.get('port', 8000)}) et donne l'adresse à l'utilisateur.")
@@ -230,7 +280,7 @@ def _champ_code(champ: dict, modules: set[str], erreurs: list[str]) -> str:
 def add_module(root: Path, nom: str, libelle: str, champs: list, objet: str = "", feminin: bool = False,
                ordre: int = 60, titre: str = "", document: bool = False, imprimable: bool = False,
                suppression: bool = True, planning: str = "", lecture: list | None = None,
-               ecriture: list | None = None) -> str:
+               ecriture: list | None = None, journal_consultations: bool = False, verifier: bool = True) -> str:
     """Écrit app/modules/<nom>.py (module déclaratif du kit gestion) et vérifie qu'il se charge."""
     if not (root / "app" / "core" / "framework.py").is_file():
         return "échec : add_module sert aux projets du kit gestion (app/core/framework.py introuvable)."
@@ -280,6 +330,8 @@ def add_module(root: Path, nom: str, libelle: str, champs: list, objet: str = ""
         options.append(f"    lecture={list(lecture)!r},")
     if ecriture:
         options.append(f"    ecriture={list(ecriture)!r},")
+    if journal_consultations or lecture:
+        options.append("    journal_consultations=True,")
     code = (f'"""{libelle}."""\n\n' + "\n".join(imports) + "\n\nmodule = Module(\n" + "\n".join(options)
             + "\n    champs=[\n" + "\n".join(lignes_champs) + "\n    ],\n)\n")
     try:
@@ -287,7 +339,7 @@ def add_module(root: Path, nom: str, libelle: str, champs: list, objet: str = ""
     except SyntaxError as exc:
         return f"échec : code invalide ({exc.msg}, ligne {exc.lineno}), vérifie les expressions de calcul.\n{code}"
     fichier.write_text(code, encoding="utf-8")
-    controle = _charger_application(root)
+    controle = _charger_application(root) if verifier else ""
     if controle:
         fichier.unlink()
         return f"échec : le module ne se charge pas, fichier retiré.\n{controle}\n--- code proposé ---\n{code}"
@@ -336,7 +388,9 @@ TOOLS = [
                     "Kits : gestion (ERP, CRM, facturation, stock, GMAO, planning…), site (site vitrine).",
         parameters={"type": "object", "properties": {
             "kit": {"type": "string", "description": "gestion ou site (ou un kit de ~/.cerveau/kits)"},
-            "title": {"type": "string", "description": "Nom affiché, ex. Garage Dupont"}},
+            "title": {"type": "string", "description": "Nom affiché, ex. Garage Dupont"},
+            "pack": {"type": "string", "description": "kit gestion : pack métier qui ajoute les bons modules : "
+                     "garage, menuiserie, espaces-verts, scierie, batiment, optique (vide sinon)"}},
             "required": ["kit", "title"]},
         run=create_project,
     ),

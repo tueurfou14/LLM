@@ -1,0 +1,29 @@
+{
+ "titre": "Menuiserie, agencement, pose",
+ "mots_cles": ["menuiserie", "menuisier", "agencement", "fenêtres", "escaliers", "pose", "ébénisterie", "charpente"],
+ "retirer": ["interventions"],
+ "modules": [
+  {"nom": "fournisseurs", "libelle": "Fournisseurs", "objet": "fournisseur", "titre": "nom", "ordre": 12, "champs": [
+   {"nom": "nom", "libelle": "Nom", "type": "texte", "requis": true},
+   {"nom": "contact", "libelle": "Contact", "type": "texte"},
+   {"nom": "email", "libelle": "Email", "type": "email"},
+   {"nom": "telephone", "libelle": "Téléphone", "type": "telephone"},
+   {"nom": "specialite", "libelle": "Spécialité", "type": "texte", "aide": "bois, quincaillerie, vitrage…"}]},
+  {"nom": "chantiers", "libelle": "Chantiers", "objet": "chantier", "titre": "intitule", "ordre": 25, "planning": "date_pose", "champs": [
+   {"nom": "intitule", "libelle": "Intitulé", "type": "texte", "requis": true},
+   {"nom": "client", "libelle": "Client", "type": "ref", "ref": "clients", "requis": true},
+   {"nom": "adresse_chantier", "libelle": "Adresse du chantier", "type": "texte_long"},
+   {"nom": "date_metre", "libelle": "Date du métré", "type": "date", "liste": false},
+   {"nom": "date_pose", "libelle": "Date de pose", "type": "date"},
+   {"nom": "poseur", "libelle": "Poseur", "type": "texte"},
+   {"nom": "statut", "libelle": "Statut", "type": "choix", "choix": ["Métré à faire", "Devis envoyé", "En fabrication", "Pose planifiée", "Posé", "Facturé"], "defaut": "Métré à faire"},
+   {"nom": "notes", "libelle": "Notes de chantier", "type": "texte_long"}]},
+  {"nom": "commandes_fournisseurs", "libelle": "Commandes fournisseurs", "objet": "commande fournisseur", "feminin": true, "ordre": 45, "document": true, "champs": [
+   {"nom": "numero", "libelle": "N°", "type": "numero", "format": "CF-{annee}-{n:04d}"},
+   {"nom": "date", "libelle": "Date", "type": "date", "requis": true, "defaut": "aujourdhui"},
+   {"nom": "fournisseur", "libelle": "Fournisseur", "type": "ref", "ref": "fournisseurs", "requis": true},
+   {"nom": "chantier", "libelle": "Chantier", "type": "ref", "ref": "chantiers"},
+   {"nom": "livraison_prevue", "libelle": "Livraison prévue", "type": "date"},
+   {"nom": "statut", "libelle": "Statut", "type": "choix", "choix": ["À envoyer", "Envoyée", "Livrée partiellement", "Livrée"], "defaut": "À envoyer"}]}
+ ]
+}

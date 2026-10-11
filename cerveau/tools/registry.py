@@ -25,6 +25,7 @@ class Registry:
     def __init__(self) -> None:
         self._tools: dict[str, Tool] = {}
         self.read_paths: set[str] = set()   # fichiers lus ou écrits pendant la session
+        self.commandes_autorisees: set[str] = set()   # programmes ajoutés à la liste du mode auto
 
     def add(self, tool: Tool) -> None:
         self._tools[tool.name] = tool
@@ -44,13 +45,18 @@ class Registry:
         if tool is None:
             return f"Outil inconnu : {name}. Outils disponibles : {', '.join(self._tools)}"
         if tool.dangerous:
-            from .shell import is_destructive
+            from .shell import is_destructive, refus_mode_auto
 
-            if name in ("run_command", "start_server") and confirm is None \
-                    and is_destructive(str(arguments.get("command", ""))):
-                return ("Commande refusée : elle est potentiellement destructrice (suppression hors du projet, "
-                        "réécriture d'historique git, arrêt de la machine) et personne n'est là pour la valider. "
-                        "Trouve une approche qui reste dans le projet.")
+            if name in ("run_command", "start_server") and confirm is None:
+                commande = str(arguments.get("command", ""))
+                if is_destructive(commande):
+                    return ("Commande refusée : elle est potentiellement destructrice (suppression hors du projet, "
+                            "réécriture d'historique git, arrêt de la machine) et personne n'est là pour la valider. "
+                            "Trouve une approche qui reste dans le projet.")
+                raison = refus_mode_auto(root, commande, self.commandes_autorisees)
+                if raison:
+                    return (f"Commande refusée en mode auto : {raison}. Utilise les outils de fichiers "
+                            "(write_file, delete_file…) ou une commande de la liste, dans le projet.")
             if confirm is not None and not confirm(name, arguments):
                 return f"L'utilisateur a refusé l'exécution de {name}. Propose une autre approche ou demande-lui pourquoi."
         path = str(arguments.get("path", "")) if isinstance(arguments, dict) else ""

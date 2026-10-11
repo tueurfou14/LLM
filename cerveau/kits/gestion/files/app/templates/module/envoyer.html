@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block titre %}Envoyer · {{ module.libelle_objet(objet) }} · {{ titre_app }}{% endblock %}
+{% block contenu %}
+<h1><a class="discret" href="/{{ module.nom }}/{{ objet.id }}">{{ module.objet|capitalize }} {{ module.libelle_objet(objet) }}</a> / Envoyer par mail</h1>
+<form method="post" class="formulaire">
+  {% if erreur %}<div class="flash erreur">{{ erreur }}</div>{% endif %}
+  <label>Destinataire * <input name="a" type="email" value="{{ a }}" required></label>
+  <label>Objet <input name="sujet" value="{{ sujet }}" required></label>
+  <label>Message <textarea name="texte" rows="8">{{ texte }}</textarea></label>
+  <small>Le document est joint en PDF.</small>
+  <div class="boutons"><button type="submit">Envoyer</button><a href="/{{ module.nom }}/{{ objet.id }}">Annuler</a></div>
+</form>
+{% endblock %}

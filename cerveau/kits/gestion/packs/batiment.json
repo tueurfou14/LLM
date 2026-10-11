@@ -1,0 +1,36 @@
+{
+ "titre": "Bâtiment : plâtrerie, peinture, second œuvre",
+ "mots_cles": ["bâtiment", "btp", "plâtrerie", "plaquiste", "peinture", "carrelage", "second œuvre", "maçonnerie", "électricité", "plomberie"],
+ "retirer": ["interventions"],
+ "modules": [
+  {"nom": "fournisseurs", "libelle": "Fournisseurs", "objet": "fournisseur", "titre": "nom", "ordre": 12, "champs": [
+   {"nom": "nom", "libelle": "Nom", "type": "texte", "requis": true},
+   {"nom": "contact", "libelle": "Contact", "type": "texte"},
+   {"nom": "email", "libelle": "Email", "type": "email"},
+   {"nom": "telephone", "libelle": "Téléphone", "type": "telephone"}]},
+  {"nom": "chantiers", "libelle": "Chantiers", "objet": "chantier", "titre": "intitule", "ordre": 25, "planning": "debut", "champs": [
+   {"nom": "intitule", "libelle": "Intitulé", "type": "texte", "requis": true},
+   {"nom": "client", "libelle": "Maître d'ouvrage", "type": "ref", "ref": "clients", "requis": true},
+   {"nom": "adresse_chantier", "libelle": "Adresse du chantier", "type": "texte_long"},
+   {"nom": "lot", "libelle": "Lot", "type": "texte", "aide": "ex. Lot 05 Plâtrerie"},
+   {"nom": "montant_marche", "libelle": "Montant du marché HT", "type": "monnaie"},
+   {"nom": "avancement", "libelle": "Avancement (%)", "type": "entier"},
+   {"nom": "debut", "libelle": "Début", "type": "date"},
+   {"nom": "fin", "libelle": "Fin prévue", "type": "date"},
+   {"nom": "conducteur", "libelle": "Conducteur de travaux", "type": "texte"},
+   {"nom": "statut", "libelle": "Statut", "type": "choix", "choix": ["Appel d'offres", "Signé", "En cours", "Réceptionné", "Clos"], "defaut": "Signé"}]},
+  {"nom": "heures", "libelle": "Heures", "objet": "saisie d'heures", "feminin": true, "ordre": 30, "planning": "date", "titre": "salarie", "champs": [
+   {"nom": "date", "libelle": "Date", "type": "date", "requis": true, "defaut": "aujourdhui"},
+   {"nom": "salarie", "libelle": "Salarié", "type": "texte", "requis": true},
+   {"nom": "chantier", "libelle": "Chantier", "type": "ref", "ref": "chantiers", "requis": true},
+   {"nom": "heures", "libelle": "Heures", "type": "decimal", "requis": true},
+   {"nom": "deplacement_km", "libelle": "Déplacement (km)", "type": "decimal"},
+   {"nom": "commentaire", "libelle": "Commentaire", "type": "texte", "liste": false}]},
+  {"nom": "commandes_fournisseurs", "libelle": "Commandes fournisseurs", "objet": "commande fournisseur", "feminin": true, "ordre": 45, "document": true, "champs": [
+   {"nom": "numero", "libelle": "N°", "type": "numero", "format": "CF-{annee}-{n:04d}"},
+   {"nom": "date", "libelle": "Date", "type": "date", "requis": true, "defaut": "aujourdhui"},
+   {"nom": "fournisseur", "libelle": "Fournisseur", "type": "ref", "ref": "fournisseurs", "requis": true},
+   {"nom": "chantier", "libelle": "Chantier", "type": "ref", "ref": "chantiers"},
+   {"nom": "statut", "libelle": "Statut", "type": "choix", "choix": ["À envoyer", "Envoyée", "Livrée"], "defaut": "À envoyer"}]}
+ ]
+}

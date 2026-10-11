@@ -144,7 +144,9 @@ class Module:
                  ecriture: list[str] | None = None, suppression: bool = True, imprimable: bool = False,
                  planning: str = "", actions: list[Action] | None = None,
                  avant_enregistrement: Callable[[Any, Session], None] | None = None,
-                 verrouille: Callable[[Any], bool] | None = None, modifiable_si_verrouille: list[str] | None = None):
+                 verrouille: Callable[[Any], bool] | None = None, modifiable_si_verrouille: list[str] | None = None,
+                 journal_consultations: bool = False,
+                 pdf: Callable[[Any, Any, dict], bytes] | None = None):
         if not re.fullmatch(r"[a-z][a-z0-9_]*", nom):
             raise ValueError(f"module « {nom} » : nom en minuscules, chiffres et _ seulement")
         if nom in REGISTRE:
@@ -174,6 +176,8 @@ class Module:
         self.avant_enregistrement = avant_enregistrement
         self.verrouille = verrouille
         self.modifiable_si_verrouille = modifiable_si_verrouille or []
+        self.journal_consultations = journal_consultations   # données sensibles : qui a consulté quoi
+        self.pdf = pdf   # fabrique du PDF (module, objet, paramètres) ; par défaut app.core.pdf.document_pdf
         self.modele = self._creer_modele()
         self.router = self._creer_router()
         REGISTRE[nom] = self
@@ -390,6 +394,46 @@ class Module:
             return Response("﻿" + sortie.getvalue(), media_type="text/csv; charset=utf-8",
                             headers={"Content-Disposition": f'attachment; filename="{module.nom}.csv"'})
 
+        @router.get("/importer")
+        def importer_page(request: Request, db: Session = Depends(get_db), utilisateur: Utilisateur = Depends(ecrire)):
+            return rendre(request, db, "module/importer.html", {"module": module, "erreurs": [], "ignorees": []},
+                          utilisateur)
+
+        @router.get("/modele.csv")
+        def modele_csv(utilisateur: Utilisateur = Depends(ecrire)):
+            colonnes = [c.libelle for c in module.champs if c.type not in ("calcul", "numero")]
+            return Response("\ufeff" + ";".join(colonnes) + "\n", media_type="text/csv; charset=utf-8",
+                            headers={"Content-Disposition": f'attachment; filename="modele-{module.nom}.csv"'})
+
+        @router.post("/importer")
+        async def importer_envoi(request: Request, db: Session = Depends(get_db),
+                                 utilisateur: Utilisateur = Depends(ecrire)):
+            from app.core import imports
+
+            formulaire = await request.form()
+            fichier = formulaire.get("fichier")
+            erreurs, ignorees = [], []
+            if fichier is None or not getattr(fichier, "filename", ""):
+                erreurs = ["choisissez un fichier"]
+            else:
+                try:
+                    lignes = imports.lire_fichier(fichier.filename, await fichier.read())
+                    objets, erreurs, ignorees = imports.importer(module, db, lignes)
+                except ValueError as exc:
+                    erreurs = [str(exc)]
+            if erreurs:
+                return rendre(request, db, "module/importer.html",
+                              {"module": module, "erreurs": erreurs[:100], "ignorees": ignorees,
+                               "plus": max(0, len(erreurs) - 100)}, utilisateur, 422)
+            nombre = imports.enregistrer(module, db, objets)
+            journaliser(db, utilisateur, "import", module.nom, None, f"{nombre} lignes depuis {fichier.filename}")
+            db.commit()
+            message = f"{nombre} {module.libelle.lower()} importé{module.e}s."
+            if ignorees:
+                message += f" Colonnes ignorées : {', '.join(ignorees)}."
+            flash(request, message)
+            return RedirectResponse(f"/{module.nom}/", status_code=303)
+
         if module.planning:
             @router.get("/planning")
             def planning(request: Request, mois: str = "", db: Session = Depends(get_db),
@@ -454,6 +498,9 @@ class Module:
             objet = charger(db, objet_id)
             if objet is None:
                 return introuvable(request, db, utilisateur)
+            if module.journal_consultations:
+                journaliser(db, utilisateur, "consultation", module.nom, objet.id, module.libelle_objet(objet))
+                db.commit()
             return page_form(request, db, utilisateur, objet)
 
         @router.post("/{objet_id:int}")
@@ -514,6 +561,69 @@ class Module:
                 return rendre(request, db, "module/imprimer.html", {"module": module, "objet": objet,
                                                                      "REGISTRE": REGISTRE}, utilisateur)
 
+        if module.imprimable:
+            def fabriquer_pdf(db: Session, objet) -> tuple[str, bytes]:
+                from app.core.modeles import lire_parametres
+                from app.core.pdf import document_pdf
+
+                nom = re.sub(r"[^A-Za-z0-9_.-]+", "-", f"{module.objet}-{module.libelle_objet(objet)}") + ".pdf"
+                return nom, (module.pdf or document_pdf)(module, objet, lire_parametres(db))
+
+            def destinataire_par_defaut(objet) -> str:
+                for champ in module.champs:
+                    cible = getattr(objet, champ.nom, None) if champ.type == "ref" else None
+                    if cible is not None and getattr(cible, "email", None):
+                        return cible.email
+                return ""
+
+            @router.get("/{objet_id:int}/pdf")
+            def telecharger_pdf(request: Request, objet_id: int, db: Session = Depends(get_db),
+                                utilisateur: Utilisateur = Depends(lire)):
+                objet = charger(db, objet_id)
+                if objet is None:
+                    return introuvable(request, db, utilisateur)
+                nom, contenu = fabriquer_pdf(db, objet)
+                return Response(contenu, media_type="application/pdf",
+                                headers={"Content-Disposition": f'attachment; filename="{nom}"'})
+
+            @router.get("/{objet_id:int}/envoyer")
+            def envoyer_page(request: Request, objet_id: int, db: Session = Depends(get_db),
+                             utilisateur: Utilisateur = Depends(ecrire)):
+                from app.core.modeles import lire_parametres
+
+                objet = charger(db, objet_id)
+                if objet is None:
+                    return introuvable(request, db, utilisateur)
+                parametres = lire_parametres(db)
+                titre = f"{module.objet.capitalize()} {module.libelle_objet(objet)}"
+                texte = (f"Bonjour,\n\nVeuillez trouver ci-joint {('la ' if module.e else 'le ')}{module.objet} "
+                         f"{module.libelle_objet(objet)}.\n\nCordialement,\n{parametres.get('societe_nom') or ''}")
+                return rendre(request, db, "module/envoyer.html", {
+                    "module": module, "objet": objet, "a": destinataire_par_defaut(objet), "sujet": titre,
+                    "texte": texte, "erreur": ""}, utilisateur)
+
+            @router.post("/{objet_id:int}/envoyer")
+            async def envoyer(request: Request, objet_id: int, db: Session = Depends(get_db),
+                              utilisateur: Utilisateur = Depends(ecrire)):
+                from app.core.mail import envoyer as envoyer_mail
+
+                objet = charger(db, objet_id)
+                if objet is None:
+                    return introuvable(request, db, utilisateur)
+                formulaire = await request.form()
+                a, sujet, texte = (str(formulaire.get(c, "")).strip() for c in ("a", "sujet", "texte"))
+                try:
+                    nom, contenu = fabriquer_pdf(db, objet)
+                    envoyer_mail(db, a, sujet, texte, [(nom, contenu, "application/pdf")])
+                except ValueError as exc:
+                    return rendre(request, db, "module/envoyer.html", {
+                        "module": module, "objet": objet, "a": a, "sujet": sujet, "texte": texte,
+                        "erreur": str(exc)}, utilisateur, 422)
+                journaliser(db, utilisateur, "envoi par mail", module.nom, objet.id, f"{module.libelle_objet(objet)} → {a}")
+                db.commit()
+                flash(request, f"Envoyé à {a}.")
+                return RedirectResponse(f"/{module.nom}/{objet.id}", status_code=303)
+
         @router.post("/{objet_id:int}/action/{nom_action}")
         def action(request: Request, objet_id: int, nom_action: str, db: Session = Depends(get_db),
                    utilisateur: Utilisateur = Depends(ecrire)):
@@ -569,6 +679,9 @@ def convertir(champ: Champ, brut) -> Any:
             raise ValueError("nombre attendu, ex. 12,50")
         return valeur
     if champ.type == "date":
+        if re.fullmatch(r"\d{1,2}/\d{1,2}/\d{4}", texte):
+            jour, mois, annee = texte.split("/")
+            texte = f"{annee}-{int(mois):02d}-{int(jour):02d}"
         try:
             return date.fromisoformat(texte[:10])
         except ValueError:

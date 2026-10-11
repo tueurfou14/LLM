@@ -5,7 +5,9 @@
   <h1>{{ module.libelle }} <span class="discret">({{ total }})</span></h1>
   <div class="boutons">
     {% if module.planning %}<a class="bouton secondaire" href="/{{ module.nom }}/planning">Planning</a>{% endif %}
+    {% if module.nom == 'factures' %}<a class="bouton secondaire" href="/factures/relances">Impayés</a>{% endif %}
     <a class="bouton secondaire" href="/{{ module.nom }}/export.csv">Export CSV</a>
+    {% if peut_ecrire %}<a class="bouton secondaire" href="/{{ module.nom }}/importer">Importer</a>{% endif %}
     {% if peut_ecrire %}<a class="bouton" href="/{{ module.nom }}/nouveau">{{ module.nouveau }}</a>{% endif %}
   </div>
 </div>

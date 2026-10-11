@@ -1,0 +1,34 @@
+{
+ "titre": "Garage automobile ou poids lourds",
+ "mots_cles": ["garage", "mécanique", "automobile", "poids lourd", "carrosserie", "pneus", "atelier"],
+ "retirer": ["interventions"],
+ "modules": [
+  {"nom": "vehicules", "libelle": "Véhicules", "objet": "véhicule", "titre": "immatriculation", "ordre": 15, "champs": [
+   {"nom": "immatriculation", "libelle": "Immatriculation", "type": "texte", "requis": true},
+   {"nom": "client", "libelle": "Client", "type": "ref", "ref": "clients", "requis": true},
+   {"nom": "marque", "libelle": "Marque", "type": "texte"},
+   {"nom": "modele", "libelle": "Modèle", "type": "texte"},
+   {"nom": "vin", "libelle": "N° de série (VIN)", "type": "texte", "liste": false},
+   {"nom": "mise_en_circulation", "libelle": "Mise en circulation", "type": "date", "liste": false},
+   {"nom": "kilometrage", "libelle": "Kilométrage", "type": "entier"},
+   {"nom": "energie", "libelle": "Énergie", "type": "choix", "choix": ["Diesel", "Essence", "Hybride", "Électrique", "GPL"]},
+   {"nom": "prochain_controle", "libelle": "Prochain contrôle technique", "type": "date"}]},
+  {"nom": "pieces", "libelle": "Pièces", "objet": "pièce", "feminin": true, "titre": "designation", "ordre": 22, "champs": [
+   {"nom": "reference", "libelle": "Référence", "type": "texte"},
+   {"nom": "designation", "libelle": "Désignation", "type": "texte", "requis": true},
+   {"nom": "stock", "libelle": "Stock", "type": "decimal"},
+   {"nom": "seuil_alerte", "libelle": "Seuil d'alerte", "type": "decimal"},
+   {"nom": "prix_achat", "libelle": "Prix d'achat HT", "type": "monnaie", "liste": false},
+   {"nom": "prix_vente", "libelle": "Prix de vente HT", "type": "monnaie"},
+   {"nom": "emplacement", "libelle": "Emplacement", "type": "texte", "liste": false}]},
+  {"nom": "ordres_reparation", "libelle": "Ordres de réparation", "objet": "ordre de réparation", "ordre": 25, "document": true, "planning": "date", "champs": [
+   {"nom": "numero", "libelle": "N°", "type": "numero", "format": "OR-{annee}-{n:04d}"},
+   {"nom": "date", "libelle": "Date", "type": "date", "requis": true, "defaut": "aujourdhui"},
+   {"nom": "client", "libelle": "Client", "type": "ref", "ref": "clients", "requis": true},
+   {"nom": "vehicule", "libelle": "Véhicule", "type": "ref", "ref": "vehicules", "requis": true},
+   {"nom": "kilometrage", "libelle": "Kilométrage à l'entrée", "type": "entier", "liste": false},
+   {"nom": "travaux_demandes", "libelle": "Travaux demandés", "type": "texte_long"},
+   {"nom": "mecanicien", "libelle": "Mécanicien", "type": "texte"},
+   {"nom": "statut", "libelle": "Statut", "type": "choix", "choix": ["Ouvert", "En cours", "En attente de pièces", "Terminé", "Facturé"], "defaut": "Ouvert"}]}
+ ]
+}

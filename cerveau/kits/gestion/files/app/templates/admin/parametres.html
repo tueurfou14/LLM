@@ -5,7 +5,8 @@
 <form method="post" enctype="multipart/form-data" class="formulaire">
   {% for cle, libelle in champs %}
     <label>{{ libelle }}
-      {% if cle in ('societe_adresse', 'mentions_documents') %}<textarea name="{{ cle }}" rows="3">{{ parametres[cle] }}</textarea>
+      {% if cle in ('societe_adresse', 'mentions_documents', 'texte_relance') %}<textarea name="{{ cle }}" rows="3">{{ parametres[cle] }}</textarea>
+      {% elif cle in secrets %}<input name="{{ cle }}" type="password" autocomplete="new-password" placeholder="{{ 'enregistré, laisser vide pour ne pas changer' if parametres[cle] else '' }}">
       {% else %}<input name="{{ cle }}" value="{{ parametres[cle] }}">{% endif %}
     </label>
   {% endfor %}

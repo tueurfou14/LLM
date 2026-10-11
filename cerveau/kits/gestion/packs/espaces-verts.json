@@ -1,0 +1,23 @@
+{
+ "titre": "Paysagiste, espaces verts",
+ "mots_cles": ["espaces verts", "paysagiste", "jardin", "jardinage", "entretien", "élagage", "tonte"],
+ "retirer": [],
+ "modules": [
+  {"nom": "contrats", "libelle": "Contrats d'entretien", "objet": "contrat", "titre": "intitule", "ordre": 28, "champs": [
+   {"nom": "intitule", "libelle": "Intitulé", "type": "texte", "requis": true},
+   {"nom": "client", "libelle": "Client", "type": "ref", "ref": "clients", "requis": true},
+   {"nom": "adresse_site", "libelle": "Adresse du site", "type": "texte_long"},
+   {"nom": "frequence", "libelle": "Fréquence", "type": "choix", "choix": ["Hebdomadaire", "Bimensuelle", "Mensuelle", "Saisonnière", "Annuelle"]},
+   {"nom": "montant_annuel", "libelle": "Montant annuel HT", "type": "monnaie"},
+   {"nom": "debut", "libelle": "Début", "type": "date"},
+   {"nom": "fin", "libelle": "Fin", "type": "date"},
+   {"nom": "actif", "libelle": "Actif", "type": "booleen", "defaut": true}]},
+  {"nom": "materiel", "libelle": "Matériel", "objet": "matériel", "titre": "designation", "ordre": 60, "champs": [
+   {"nom": "designation", "libelle": "Désignation", "type": "texte", "requis": true},
+   {"nom": "categorie", "libelle": "Catégorie", "type": "choix", "choix": ["Tondeuse", "Débroussailleuse", "Taille-haie", "Tronçonneuse", "Véhicule", "Remorque", "Autre"]},
+   {"nom": "numero_serie", "libelle": "N° de série", "type": "texte", "liste": false},
+   {"nom": "date_achat", "libelle": "Date d'achat", "type": "date", "liste": false},
+   {"nom": "prochain_entretien", "libelle": "Prochain entretien", "type": "date"},
+   {"nom": "etat", "libelle": "État", "type": "choix", "choix": ["En service", "En panne", "En réparation", "Réformé"], "defaut": "En service"}]}
+ ]
+}

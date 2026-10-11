@@ -23,6 +23,7 @@
         {% if cible %}
           <strong>{{ REGISTRE[c.ref].libelle_objet(cible) }}</strong>
           {% if cible.adresse is defined and cible.adresse %}<div class="multi">{{ cible.adresse }}</div>{% endif %}
+          {% if cible.siren is defined and cible.siren %}<div>SIREN {{ cible.siren }}</div>{% endif %}
         {% endif %}
       {% endfor %}
     </div>
