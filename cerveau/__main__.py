@@ -11,6 +11,8 @@
   cerveau bench [modèles...]    mesure le débit réel des modèles
   cerveau skills                liste les procédures disponibles
   cerveau context [n]           affiche ou applique la taille de contexte (crée la variante Ollama)
+  cerveau banc [scénarios...]   banc d'essai : scénarios notés, comparaison de modèles et de réglages
+  cerveau deployer <dossier>    met en ligne un projet issu d'un kit (conteneur Proxmox + Caddy)
 
 Dans la console, « /mode auto » supprime les confirmations et le mot « autonome » dans une
 demande fait enchaîner les étapes jusqu'à « ÉTAT : TERMINÉ ».
@@ -312,6 +314,15 @@ def cmd_skills(_args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] == ["banc"]:
+        from .banc import main_banc
+
+        return main_banc(argv[1:])
+    if argv[:1] == ["deployer"]:
+        from .deploiement import main_deployer
+
+        return main_deployer(argv[1:])
     parser = argparse.ArgumentParser(prog="cerveau", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--version", action="version", version=f"cerveau {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)

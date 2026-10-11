@@ -1,0 +1,17 @@
+{
+  "nom": "espaces-verts",
+  "description": "ERP pour une entreprise d'espaces verts avec chantiers planifiés, devis et factures, en autonomie.",
+  "demande": "Fais un ERP pour mon entreprise d'espaces verts : clients, chantiers planifiés (date, adresse, équipe, type de travaux : tonte, taille, élagage, création), devis et factures. Sois autonome.",
+  "autonome": true,
+  "limite_etapes": 30,
+  "criteres": [
+    {"type": "verification", "poids": 3},
+    {"type": "module", "libelle": "chantiers planifiés (planning), liés aux clients", "motif": "chantier|intervention", "planning": true, "ref": "clients", "poids": 2},
+    {"type": "module", "libelle": "devis et factures présents", "nom": ["devis", "factures"], "tous": true},
+    {"type": "texte", "libelle": "types de travaux proposés", "fichier": "app/modules/*.py", "contient": ["tonte", "élagage"], "insensible_casse": true},
+    {"type": "tests", "min": 35, "poids": 2},
+    {"type": "http", "pages": [{"chemin": "/sante"}, {"chemin": "/connexion"}]},
+    {"type": "plan"},
+    {"type": "hors_projet"}
+  ]
+}

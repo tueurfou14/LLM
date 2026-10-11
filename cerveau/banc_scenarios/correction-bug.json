@@ -1,0 +1,15 @@
+{
+  "nom": "correction-bug",
+  "description": "Projet de gestion avec un bug injecté dans le calcul du total TTC : trouver la cause et faire repasser les tests sans les modifier.",
+  "demande": "Les tests de mon application ne passent plus depuis ma dernière modification. Trouve la cause, corrige-la et fais passer tous les tests, sans modifier les tests.",
+  "autonome": false,
+  "limite_etapes": 1,
+  "preparation": {"kit": "gestion", "titre": "Garage Martin", "injections": [{"fichier": "app/modules/_documents.py", "remplacer": "return total_ht(document) + total_tva(document)", "par": "return total_ht(document) - total_tva(document)"}]},
+  "criteres": [
+    {"type": "verification", "poids": 3},
+    {"type": "texte", "libelle": "calcul du TTC corrigé", "fichier": "app/modules/_documents.py", "absent": ["total_ht(document) - total_tva(document)"], "poids": 2},
+    {"type": "inchange", "libelle": "tests non modifiés", "fichiers": ["tests/*.py"], "poids": 2},
+    {"type": "tests", "depart_plus": 1},
+    {"type": "hors_projet"}
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "nom": "site-menuiserie",
+  "description": "Site vitrine d'une menuiserie, contenu adapté au client à partir du kit site.",
+  "demande": "Fais le site vitrine de la Menuiserie Lambert, artisan menuisier à Pontarlier (Doubs) depuis 1987 : fenêtres, portes, escaliers et agencement intérieur sur mesure en bois massif, pose comprise. Téléphone 03 81 39 12 45, email contact@menuiserie-lambert.fr, atelier au 12 rue des Artisans, 25300 Pontarlier. Sois autonome.",
+  "autonome": true,
+  "limite_etapes": 20,
+  "criteres": [
+    {"type": "verification", "poids": 3},
+    {"type": "fichier", "chemin": "contenu/site.json"},
+    {"type": "texte", "libelle": "coordonnées réelles du client", "fichier": "contenu/site.json", "contient": ["Lambert", "Pontarlier", "03 81 39 12 45", "contact@menuiserie-lambert.fr"], "poids": 2},
+    {"type": "texte", "libelle": "métier de menuisier décrit", "fichier": "contenu/site.json", "contient": ["escalier", "fenêtre", "bois"], "poids": 2},
+    {"type": "texte", "libelle": "plus aucun contenu d'exemple du kit", "fichier": "contenu/site.json", "absent": ["__TITRE__", "rue de l'Exemple", "contact@exemple.fr", "01 23 45 67 89"], "poids": 2},
+    {"type": "http", "pages": [{"chemin": "/", "contient": ["Lambert"]}, {"chemin": "/services.html"}, {"chemin": "/contact.html", "contient": ["03 81 39 12 45"]}]},
+    {"type": "hors_projet"}
+  ]
+}

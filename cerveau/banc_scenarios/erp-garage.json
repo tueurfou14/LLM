@@ -1,0 +1,19 @@
+{
+  "nom": "erp-garage",
+  "description": "ERP complet pour un garage, en autonomie, à partir d'un dossier vide.",
+  "demande": "Fais un ERP pour mon garage : clients, véhicules, ordres de réparation avec lignes et totaux, factures. Sois autonome.",
+  "autonome": true,
+  "limite_etapes": 30,
+  "criteres": [
+    {"type": "verification", "poids": 3},
+    {"type": "module", "nom": "clients"},
+    {"type": "module", "libelle": "module véhicules lié aux clients", "motif": "vehicul|voiture|auto", "ref": "clients", "poids": 2},
+    {"type": "module", "libelle": "ordres de réparation avec lignes et totaux", "motif": "ordre|reparation|^or$|^ors$", "document": true, "poids": 2},
+    {"type": "module", "nom": "factures"},
+    {"type": "texte", "libelle": "nom de l'application adapté au garage", "fichier": "app/config.py", "contient": ["garage"], "insensible_casse": true},
+    {"type": "tests", "min": 39, "poids": 2},
+    {"type": "http", "pages": [{"chemin": "/sante"}, {"chemin": "/connexion"}]},
+    {"type": "plan"},
+    {"type": "hors_projet"}
+  ]
+}

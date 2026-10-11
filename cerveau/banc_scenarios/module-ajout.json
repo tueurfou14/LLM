@@ -1,0 +1,17 @@
+{
+  "nom": "module-ajout",
+  "description": "Projet de gestion existant : ajout d'un module fournisseurs et d'un module commandes fournisseurs lié, sans casser l'existant.",
+  "demande": "Dans cette application, ajoute un module « fournisseurs » (raison sociale, contact, téléphone, email, conditions de paiement) et un module « commandes fournisseurs » lié aux fournisseurs, avec des lignes et les totaux. Vérifie que tout fonctionne.",
+  "autonome": false,
+  "limite_etapes": 1,
+  "preparation": {"kit": "gestion", "titre": "Scierie du Haut-Doubs"},
+  "criteres": [
+    {"type": "verification", "poids": 3},
+    {"type": "module", "nom": "fournisseurs", "poids": 2},
+    {"type": "module", "libelle": "commandes fournisseurs liées aux fournisseurs, avec lignes", "motif": "commande", "ref": "fournisseurs", "document": true, "poids": 2},
+    {"type": "module", "libelle": "modules existants conservés", "nom": ["clients", "devis", "factures"], "tous": true},
+    {"type": "inchange", "libelle": "tests du socle intacts", "fichiers": ["tests/*.py"]},
+    {"type": "tests", "depart_plus": 8},
+    {"type": "hors_projet"}
+  ]
+}
